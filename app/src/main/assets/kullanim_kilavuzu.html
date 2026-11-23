@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Optiklik — Adım Adım Kullanım Kılavuzu</title>
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-light: #2563eb;
+      --primary-bg: #eff6ff;
+      --accent: #0ea5e9;
+      --success: #16a34a;
+      --success-bg: #f0fdf4;
+      --warning: #b45309;
+      --warning-bg: #fffbeb;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #e2e8f0;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #2563eb 100%);
+      color: #fff;
+      padding: 56px 20px 48px;
+      text-align: center;
+    }
+
+    .hero-inner {
+      max-width: 880px;
+      margin: 0 auto;
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 {
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+    }
+
+    .hero p {
+      font-size: clamp(15px, 2.2vw, 18px);
+      color: #dbeafe;
+      max-width: 680px;
+      margin: 0 auto 24px;
+    }
+
+    .hero-pills {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .hero-pills span {
+      background: rgba(15, 23, 42, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #f1f5f9;
+    }
+
+    /* Sticky Step Nav */
+    .step-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+    }
+
+    .step-nav-inner {
+      max-width: 1040px;
+      margin: 0 auto;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .step-nav-inner::-webkit-scrollbar {
+      display: none;
+    }
+
+    .step-nav a {
+      flex: 0 0 auto;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #fff;
+      transition: all 0.18s ease;
+    }
+
+    .step-nav a:hover,
+    .step-nav a.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 960px;
+      margin: 32px auto 64px;
+      padding: 0 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Step Card */
+    .step-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 26px 28px;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+      scroll-margin-top: 72px;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .step-num {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-header h2 {
+      font-size: 21px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .step-header .subtitle {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .step-list {
+      margin: 12px 0 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .step-list li {
+      padding-left: 4px;
+    }
+
+    /* Grid for sub-options */
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .sub-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .sub-box h3 {
+      font-size: 15px;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .sub-box p,
+    .sub-box ul,
+    .sub-box ol {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .sub-box ul,
+    .sub-box ol {
+      margin: 8px 0 0 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .sub-box strong {
+      color: var(--text);
+    }
+
+    /* Callouts */
+    .callout {
+      margin-top: 16px;
+      padding: 13px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      border-left: 4px solid;
+    }
+
+    .callout.info {
+      background: var(--primary-bg);
+      border-color: var(--primary-light);
+      color: #1e3a8a;
+    }
+
+    .callout.warn {
+      background: var(--warning-bg);
+      border-color: #f59e0b;
+      color: #92400e;
+    }
+
+    .callout.ok {
+      background: var(--success-bg);
+      border-color: var(--success);
+      color: #166534;
+    }
+
+    /* Inline code / UI button chip */
+    .ui-btn {
+      display: inline-block;
+      background: #e2e8f0;
+      color: #0f172a;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 1px 8px;
+      border-radius: 6px;
+    }
+
+    .code-inline {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 13px;
+      color: #0f172a;
+    }
+
+    .copy-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      vertical-align: middle;
+    }
+
+    .copy-btn {
+      border: 1px solid var(--primary-light);
+      background: #fff;
+      color: var(--primary-light);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .copy-btn:hover {
+      background: var(--primary-light);
+      color: #fff;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 24px 16px 40px;
+      color: var(--muted);
+      font-size: 13px;
+      border-top: 1px solid var(--border);
+      background: #fff;
+    }
+
+    @media (max-width: 600px) {
+      .step-card {
+        padding: 20px 18px;
+      }
+      .step-header h2 {
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="badge">Optiklik • Öğretmen Kullanım Rehberi</div>
+      <h1>Baştan Sona Optiklik Kullanımı</h1>
+      <p>
+        Öğretmen profilinizi oluşturun, e-Okul öğrenci listenizi yükleyin, optik formları kamera veya PDF üzerinden saniyeler içinde okuyup sonuçları tek tıkla e-Okul OYSS ekranına aktarın.
+      </p>
+      <div class="hero-pills">
+        <span>1. Profil &amp; Rehber</span>
+        <span>2. Optik Form Şablonları</span>
+        <span>3. Sınav Oturumu</span>
+        <span>4. Kamera &amp; PDF Tarama</span>
+        <span>5. Excel &amp; OYSS Aktarım</span>
+      </div>
+    </div>
+  </header>
+
+  <nav class="step-nav" aria-label="Adımlar">
+    <div class="step-nav-inner">
+      <a href="#adim-1">1. Öğretmen Profili</a>
+      <a href="#adim-2">2. Öğrenci Ekleme</a>
+      <a href="#adim-3">3. Optik Formlar</a>
+      <a href="#adim-4">4. Yeni Sınav</a>
+      <a href="#adim-5">5. Form Okuma</a>
+      <a href="#adim-6">6. Sonuçlar &amp; Excel</a>
+      <a href="#adim-7">7. e-Okul OYSS Aktarım</a>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <!-- ADIM 1 -->
+    <section id="adim-1" class="step-card">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div>
+          <h2>Öğretmen Profili Oluşturma</h2>
+          <div class="subtitle">Excel başlıkları ve sınav oturumları için tek seferlik kurulum</div>
+        </div>
+      </div>
+      <p>
+        Uygulamayı ilk açtığınızda ana ekrandaki <span class="ui-btn">Öğretmen Profilini Tamamla</span> kartına veya sağ üstteki profil simgesine dokunun.
+      </p>
+      <ol class="step-list">
+        <li><strong>Adı Soyadı</strong> ve <strong>Branşı</strong> alanlarını doldurun.</li>
+        <li><strong>Eğitim Öğretim Yılı</strong> bilgisini girin (örn. <span class="code-inline">2026-2027</span>).</li>
+        <li><strong>Okul Ekle</strong> alanına görev yaptığınız okulun adını yazıp <span class="ui-btn">+</span> butonuna dokunun (birden fazla okul ekleyebilirsiniz).</li>
+        <li><span class="ui-btn">Kaydet</span> butonuna basarak profili tamamlayın.</li>
+      </ol>
+      <div class="callout info">
+        <strong>Neden önemli?</strong> Girdiğiniz okul, öğretmen adı ve branş bilgileri yeni sınav oluştururken otomatik gelir ve dışa aktardığınız Excel raporlarının üst bilgisine otomatik yazılır.
+      </div>
+    </section>
+
+    <!-- ADIM 2 -->
+    <section id="adim-2" class="step-card">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div>
+          <h2>Öğrencileri Ekleme (Öğrenci Rehberi)</h2>
+          <div class="subtitle">e-Okul listesini toplu yükleme veya tek tek öğrenci ekleme</div>
+        </div>
+      </div>
+      <p>
+        Ana ekranın üst çubuğundaki <span class="ui-btn">Rehber</span> butonuna dokunarak Öğrenci Rehberi ekranını açın.
+      </p>
+      <div class="two-col">
+        <div class="sub-box">
+          <h3>Toplu Liste Yükleme (Önerilen)</h3>
+          <ol>
+            <li><strong>e-OKUL</strong>'a giriş yapın.</li>
+            <li><strong>Ortaöğretim Öğrenci İşlemleri</strong>'ne tıklayın.</li>
+            <li><strong>Yazdır (Raporlar)</strong> simgesine tıklayın.</li>
+            <li>Açılan sayfada en üstte bulunan seçeneklerden <strong>Gösterici Seçenekleri (Html5 Word Excel)</strong> seçeneğini seçin.</li>
+            <li><strong>OOG01001R090 Fotoğraflı-Kimlik Bilgili Öğrenci Listesi</strong> raporuna tıklayın.</li>
+            <li>Açılan pencerede <strong>Sınıfı</strong> ve <strong>Şubesi</strong> seçiniz, sonra <strong>TAMAM</strong> yazısına tıklayınız.</li>
+            <li>Yazıcı işareti yanında bulunan <strong>&gt;&gt;</strong> işaretine tıklayarak <strong>Excel (Sadece Veri)</strong> üzerine tıklayıp sınıf öğrenci listesini indiriniz.</li>
+            <li>İndirdiğiniz sınıf listesini uygulama içerisindeki <strong>Öğrenci Listesi Yükleme</strong> alanından (<span class="ui-btn">Liste Yükle</span>) yükleyiniz.</li>
+          </ol>
+        </div>
+        <div class="sub-box">
+          <h3>Elle Öğrenci Ekleme</h3>
+          <ul>
+            <li>Sağ alttaki <span class="ui-btn">+ Öğrenci Ekle</span> butonuna dokunun.</li>
+            <li>Okul, sınıf/şube, okul no, T.C. Kimlik No ve ad-soyad bilgilerini girip kaydedin.</li>
+            <li>Arama çubuğu ve okul filtreleriyle kayıtlı öğrencileri dilediğiniz zaman düzenleyebilirsiniz.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout ok">
+        <strong>Çift Anahtarlı Eşleştirme:</strong> Optik form okunurken öğrenci önce <strong>T.C. Kimlik No</strong>, yoksa <strong>Okul No</strong> üzerinden rehberle otomatik eşleştirilir.
+      </div>
+    </section>
+
+    <!-- ADIM 3 -->
+    <section id="adim-3" class="step-card">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <div>
+          <h2>Optik Form Şablonlarını İndirme ve Hazırlama</h2>
+          <div class="subtitle">13 bloklu standart optik formları cihazınıza indirin veya paylaşın</div>
+        </div>
+      </div>
+      <p>
+        Ana ekranın üst çubuğundaki <span class="ui-btn">Formlar</span> butonuna dokunarak <strong>Optik Form Şablonları</strong> penceresini açın.
+      </p>
+      <div class="two-col">
+        <div class="sub-box">
+          <h3>Optik Form 1 (Tekli Şablon — JPG)</h3>
+          <p>
+            Kendi hazırladığınız Word/PDF yazılı kağıtlarının üst kısmına eklemek veya tekli çıktı almak için kullanılır. <span class="ui-btn">İndir</span> ile telefonun İndirilenler klasörüne kaydedebilir veya <span class="ui-btn">Paylaş</span> ile bilgisayarınıza gönderebilirsiniz.
+          </p>
+        </div>
+        <div class="sub-box">
+          <h3>Optik Form 2 (2'li A4 Şablon — PDF)</h3>
+          <p>
+            Tek A4 sayfasında 2 adet optik form bulunur. Sadece optik form dağıtacağınız sınavlarda kağıt tasarrufu sağlar.
+          </p>
+        </div>
+      </div>
+      <div class="callout warn">
+        <strong>Önemli Baskı ve Tarama Kuralı:</strong> Optik Form 1 (Tekli Şablon — JPG) Kullanırken Word Ekle Resim Ekle Bu Cihazdan ekle yolunu kullanarak optik formu ekleyin form boyutunda oynama yapmayın. 2'li A4 şablonunu (Optik Form 2) yazdırdıktan sonra <strong>mutlaka ortadan keserek</strong> tek form halinde dağıtın ve taratın. Tek sayfada iki optik form birlikte taranırsa uygulama güvenlik gereği <em>"Sayfa başına tek form yazdırın"</em> uyarısı verir.
+      </div>
+    </section>
+
+    <!-- ADIM 4 -->
+    <section id="adim-4" class="step-card">
+      <div class="step-header">
+        <div class="step-num">4</div>
+        <div>
+          <h2>Yeni Sınav Oturumu Oluşturma</h2>
+          <div class="subtitle">Soru sayısı ve 100 puan dağılımını tanımlama</div>
+        </div>
+      </div>
+      <p>
+        Ana ekranın sağ altındaki <span class="ui-btn">+ Yeni Sınav</span> butonuna dokunun ve sırasıyla şu alanları doldurun:
+      </p>
+      <ol class="step-list">
+        <li><strong>Okul Adı</strong> ve <strong>Eğitim Öğretim Yılı</strong> bilgisini seçin.</li>
+        <li><strong>Sınav Dönemi</strong> kartlarından ilgili yazılıyı seçin (örn. <em>1. Dönem 1. Yazılı Yoklama</em>).</li>
+        <li><strong>Sınıf / Şube</strong> (örn. <span class="code-inline">9-A</span>) ve <strong>Ders Adı</strong> (örn. <span class="code-inline">Coğrafya</span>) alanlarını yazın.</li>
+        <li><strong>Soru Sayısı (1–10)</strong> seçin ve her sorunun azami puanını girin.</li>
+        <li>Alt kısımda <strong>Toplam Puan: 100 / 100</strong> yeşil onayını gördüğünüzde <span class="ui-btn">Oluştur</span> butonuna basın.</li>
+      </ol>
+      <div class="callout info">
+        <strong>Akıllı Puan Koruması:</strong> Burada tanımladığınız soru sayısı ve soru başı maksimum puanlar, okuma sırasında olası hatalı kodlamaların (örneğin 20 puanlık soruda 80 okunmasının) önüne geçer.
+      </div>
+    </section>
+
+    <!-- ADIM 5 -->
+    <section id="adim-5" class="step-card">
+      <div class="step-header">
+        <div class="step-num">5</div>
+        <div>
+          <h2>Optik Formları Okuma</h2>
+          <div class="subtitle">Canlı kamera veya toplu PDF / görsel tarama</div>
+        </div>
+      </div>
+      <p>
+        Oluşturduğunuz sınav kartının altındaki iki tarama yönteminden birini seçin:
+      </p>
+      <div class="two-col">
+        <div class="sub-box">
+          <h3>A) Canlı Kamera ile Okuma (<span class="ui-btn">Kamera</span>)</h3>
+          <ul>
+            <li>Optik formun 4 köşesindeki dairesel hedefleri (bullseye) ekrandaki çerçeveye hizalayın.</li>
+            <li>4/4 köşe kilitlenip çerçeve <strong>yeşil</strong> olduğunda alttaki <span class="ui-btn">Tara</span> butonuna dokunun.</li>
+            <li>Seri tarama için sağ üstten <strong>Otomatik Tara</strong> anahtarını açabilirsiniz; sabit tuttuğunuzda kağıt otomatik okunur.</li>
+            <li>Başarılı okumada sesli/titreşimli onay ve öğrenci puan özeti görünür.</li>
+          </ul>
+        </div>
+        <div class="sub-box">
+          <h3>B) Dosya / PDF ile Toplu Tarama (<span class="ui-btn">Dosya/PDF</span>)</h3>
+          <ul>
+            <li><span class="ui-btn">Dosya / PDF Seç</span> butonuna dokunarak galeriden JPG/PNG fotoğrafları veya çok sayfalı bir PDF dosyasını seçin.</li>
+            <li>Uygulama her sayfayı otomatik olarak sırayla okur ve canlı ilerleme çubuğuyla raporlar.</li>
+            <li>Hatalı veya uyarı veren bir sayfa olursa kartın altındaki <span class="ui-btn">Düzenle</span> butonuyla anında düzeltebilirsiniz.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADIM 6 -->
+    <section id="adim-6" class="step-card">
+      <div class="step-header">
+        <div class="step-num">6</div>
+        <div>
+          <h2>Sonuçları İnceleme ve Excel Dosyasını Alma</h2>
+          <div class="subtitle">Soru analizi, okunmayan öğrenciler ve .xlsx dışa aktarma</div>
+        </div>
+      </div>
+      <p>
+        Sınav kartından <span class="ui-btn">Sonuçlar</span> butonuna dokunun:
+      </p>
+      <ol class="step-list">
+        <li>Üst kısımda <strong>Sınıf Ortalaması</strong> ve her soru için <strong>Soru Analizi (S1–S10 ortalamaları ve başarı %)</strong> otomatik hesaplanır.</li>
+        <li>Filtre çiplerinden <em>Kontrol Gerekli</em>, <em>Toplam Uyuşmazlığı</em> veya <em>Listede Yok</em> kayıtlarını tek dokunuşla süzüp ilgili öğrenciye dokunarak elle düzeltebilirsiniz.</li>
+        <li>Kırmızı renkli <span class="ui-btn">Okunmayan: X</span> butonuna dokunarak o sınıfta sınava girmeyen veya kağıdı atlanan öğrencileri görebilirsiniz.</li>
+        <li>İsterseniz <strong>Excel T.C. Maskele</strong> seçeneğini açıp <span class="ui-btn">Excel (.xlsx)</span> butonuna basın.</li>
+        <li>Oluşan Excel dosyası telefonun <strong>İndirilenler</strong> klasörüne kaydedilir. Açılan pencereden <span class="ui-btn">Paylaş</span> diyerek WhatsApp, e-posta veya Drive üzerinden bilgisayarınıza aktarabilirsiniz.</li>
+      </ol>
+      <div class="callout ok">
+        <strong>2 Sayfalı Hazır Rapor:</strong> Oluşturulan <span class="code-inline">.xlsx</span> dosyasında 1. sayfada <strong>Sınav Sonuçları</strong> (sınıf ortalaması formüllü), 2. sayfada ise <strong>Soru Analizi</strong> tablosu yer alır.
+      </div>
+    </section>
+
+    <!-- ADIM 7 -->
+    <section id="adim-7" class="step-card">
+      <div class="step-header">
+        <div class="step-num">7</div>
+        <div>
+          <h2>e-Okul OYSS Ekranına Otomatik Not Aktarma</h2>
+          <div class="subtitle">Chrome eklentisi ile tek tıkla puan girişi</div>
+        </div>
+      </div>
+      <p>
+        Ana ekrandaki <span class="ui-btn">E-OKUL OYSS NOT AKTARICI</span> kartına dokunun ve açılan pencerede <span class="ui-btn">TAMAM</span> butonuna basarak <span class="code-inline">E-OKUL_OYSS_NOT_AKTARICI.rar</span> dosyasını telefonunuza indirin.
+      </p>
+
+      <div class="two-col">
+        <div class="sub-box">
+          <h3>1. Eklentiyi Chrome'a Kurma (Tek Seferlik)</h3>
+          <ul>
+            <li>İndirdiğiniz <span class="code-inline">E-OKUL_OYSS_NOT_AKTARICI.rar</span> dosyasını bilgisayarınızın masaüstüne kopyalayıp RAR'dan çıkarın.</li>
+            <li>Klasör içinde <span class="code-inline">manifest.json</span>, <span class="code-inline">content.js</span> ve <span class="code-inline">xlsx.full.min.js</span> dosyalarının birlikte olduğundan emin olun.</li>
+            <li>
+              Chrome adres çubuğuna
+              <span class="copy-row">
+                <span class="code-inline" id="ext-url">chrome://extensions</span>
+                <button class="copy-btn" type="button" onclick="copyText('ext-url', this)">Kopyala</button>
+              </span>
+              yazıp Enter'a basın.
+            </li>
+            <li>Sağ üstten <strong>Geliştirici modu</strong> anahtarını açın.</li>
+            <li>Sol üstten <strong>Paketlenmemiş öğe yükle</strong> butonuna tıklayıp çıkardığınız klasörü seçin.</li>
+          </ul>
+        </div>
+
+        <div class="sub-box">
+          <h3>2. Notları e-Okul'a Aktarma</h3>
+          <ul>
+            <li>Optiklik'ten aldığınız <span class="code-inline">.xlsx</span> dosyasını bilgisayarınıza aktarın.</li>
+            <li>e-Okul'da <strong>OYSS Puan Giriş Ekranını</strong> (İlköğretim <span class="code-inline">IOK10020</span> veya Ortaöğretim <span class="code-inline">OOK10020</span>) açıp sınıf, ders ve sınavı getirin.</li>
+            <li>Sağ altta otomatik açılan <strong>OYSS Excel Aktarıcı (Optiklik)</strong> panelinden Excel dosyasını seçin.</li>
+            <li>Sırasıyla <span class="ui-btn">2) Kontrol et</span> &rarr; uyarıları inceleyin &rarr; <span class="ui-btn">3) Aktar</span> butonlarına basın.</li>
+            <li>Toplamları kontrol edip e-Okul'daki <strong>KAYDET</strong> butonuna kendiniz basın.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <strong>Güvenlik ve Süre Notu:</strong> Eklenti internete hiçbir veri göndermez ve sizin yerinize <em>Kaydet</em> butonuna basmaz. Okunmayan (sınava girmeyen) öğrencilerin satırlarına dokunulmaz; onları ekrandan <em>Sınava Girmedi</em> olarak işaretleyip <strong>10 dakikalık</strong> oturum süresi dolmadan kaydedebilirsiniz.
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <strong>Optiklik</strong> — Optik Form Okuma, Soru Analizi ve e-Okul OYSS Aktarım Rehberi
+  </footer>
+
+  <script>
+    function copyText(elementId, btn) {
+      const text = document.getElementById(elementId).textContent.trim();
+      navigator.clipboard.writeText(text).then(() => {
+        const old = btn.textContent;
+        btn.textContent = "Kopyalandı ✓";
+        setTimeout(() => (btn.textContent = old), 1600);
+      });
+    }
+
+    // Aktif adım vurgusu
+    const links = [...document.querySelectorAll(".step-nav a")];
+    const sections = links.map((a) => document.querySelector(a.getAttribute("href")));
+    window.addEventListener("scroll", () => {
+      const y = window.scrollY + 120;
+      let activeIdx = 0;
+      sections.forEach((sec, idx) => {
+        if (sec && sec.offsetTop <= y) activeIdx = idx;
+      });
+      links.forEach((a, idx) => a.classList.toggle("active", idx === activeIdx));
+    });
+  </script>
+</body>
+</html>

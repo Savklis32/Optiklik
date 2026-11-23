@@ -1,0 +1,6 @@
+-keep class org.opencv.** { *; }
+-dontwarn org.opencv.**
+-keep class org.apache.poi.** { *; }
+-dontwarn org.apache.poi.**
+-dontwarn org.apache.xmlbeans.**
+-dontwarn org.openxmlformats.schemas.**

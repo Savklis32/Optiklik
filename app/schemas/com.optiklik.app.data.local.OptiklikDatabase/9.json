@@ -1,0 +1,348 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 9,
+    "identityHash": "7937ef0285366fa4fbe0e4306f0cf36b",
+    "entities": [
+      {
+        "tableName": "exam_sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `okulAdi` TEXT NOT NULL DEFAULT '', `egitimOgretimYili` TEXT NOT NULL DEFAULT '2026-2027', `sinavDonemi` TEXT NOT NULL, `sinifSubesi` TEXT NOT NULL, `dersAdi` TEXT NOT NULL DEFAULT '', `soruSayisi` INTEGER NOT NULL DEFAULT 10, `soruPuanlari` TEXT NOT NULL DEFAULT '10,10,10,10,10,10,10,10,10,10', `createdAt` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "okulAdi",
+            "columnName": "okulAdi",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "egitimOgretimYili",
+            "columnName": "egitimOgretimYili",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'2026-2027'"
+          },
+          {
+            "fieldPath": "sinavDonemi",
+            "columnName": "sinavDonemi",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sinifSubesi",
+            "columnName": "sinifSubesi",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dersAdi",
+            "columnName": "dersAdi",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "soruSayisi",
+            "columnName": "soruSayisi",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "10"
+          },
+          {
+            "fieldPath": "soruPuanlari",
+            "columnName": "soruPuanlari",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'10,10,10,10,10,10,10,10,10,10'"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "exam_results",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `examSessionId` INTEGER NOT NULL, `tcKimlikNo` TEXT NOT NULL, `okulNo` TEXT NOT NULL, `adSoyad` TEXT NOT NULL, `sinifSubesi` TEXT NOT NULL, `score1` INTEGER NOT NULL, `score2` INTEGER NOT NULL, `score3` INTEGER NOT NULL, `score4` INTEGER NOT NULL, `score5` INTEGER NOT NULL, `score6` INTEGER NOT NULL, `score7` INTEGER NOT NULL, `score8` INTEGER NOT NULL, `score9` INTEGER NOT NULL, `score10` INTEGER NOT NULL, `totalScore` INTEGER NOT NULL, `codedTotalScore` INTEGER, `hasTotalMismatch` INTEGER NOT NULL, `isTcValid` INTEGER NOT NULL, `needsManualReview` INTEGER NOT NULL, `matchStatus` TEXT NOT NULL DEFAULT 'NONE', `reviewReasons` TEXT NOT NULL DEFAULT '[]', `scannedAt` INTEGER NOT NULL, FOREIGN KEY(`examSessionId`) REFERENCES `exam_sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "examSessionId",
+            "columnName": "examSessionId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tcKimlikNo",
+            "columnName": "tcKimlikNo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "okulNo",
+            "columnName": "okulNo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "adSoyad",
+            "columnName": "adSoyad",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sinifSubesi",
+            "columnName": "sinifSubesi",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "score1",
+            "columnName": "score1",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "score2",
+            "columnName": "score2",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "score3",
+            "columnName": "score3",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "score4",
+            "columnName": "score4",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "score5",
+            "columnName": "score5",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "score6",
+            "columnName": "score6",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "score7",
+            "columnName": "score7",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "score8",
+            "columnName": "score8",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "score9",
+            "columnName": "score9",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "score10",
+            "columnName": "score10",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalScore",
+            "columnName": "totalScore",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "codedTotalScore",
+            "columnName": "codedTotalScore",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "hasTotalMismatch",
+            "columnName": "hasTotalMismatch",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isTcValid",
+            "columnName": "isTcValid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "needsManualReview",
+            "columnName": "needsManualReview",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "matchStatus",
+            "columnName": "matchStatus",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'NONE'"
+          },
+          {
+            "fieldPath": "reviewReasons",
+            "columnName": "reviewReasons",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'[]'"
+          },
+          {
+            "fieldPath": "scannedAt",
+            "columnName": "scannedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_exam_results_examSessionId",
+            "unique": false,
+            "columnNames": [
+              "examSessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_exam_results_examSessionId` ON `${TABLE_NAME}` (`examSessionId`)"
+          },
+          {
+            "name": "index_exam_results_examSessionId_tcKimlikNo",
+            "unique": true,
+            "columnNames": [
+              "examSessionId",
+              "tcKimlikNo"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_exam_results_examSessionId_tcKimlikNo` ON `${TABLE_NAME}` (`examSessionId`, `tcKimlikNo`)"
+          },
+          {
+            "name": "index_exam_results_examSessionId_okulNo",
+            "unique": true,
+            "columnNames": [
+              "examSessionId",
+              "okulNo"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_exam_results_examSessionId_okulNo` ON `${TABLE_NAME}` (`examSessionId`, `okulNo`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "exam_sessions",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "examSessionId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "student_directory",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tcKimlikNo` TEXT NOT NULL, `okulAdi` TEXT NOT NULL DEFAULT '', `sinifSubesi` TEXT NOT NULL DEFAULT '', `okulNo` TEXT NOT NULL, `adSoyad` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`tcKimlikNo`, `okulAdi`))",
+        "fields": [
+          {
+            "fieldPath": "tcKimlikNo",
+            "columnName": "tcKimlikNo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "okulAdi",
+            "columnName": "okulAdi",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "sinifSubesi",
+            "columnName": "sinifSubesi",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "okulNo",
+            "columnName": "okulNo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "adSoyad",
+            "columnName": "adSoyad",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "tcKimlikNo",
+            "okulAdi"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7937ef0285366fa4fbe0e4306f0cf36b')"
+    ]
+  }
+}

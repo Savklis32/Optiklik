@@ -1,0 +1,117 @@
+{
+  "fixtures": [
+    {
+      "sourceFile": "Adobe_Scan.pdf",
+      "page": 1,
+      "verified": true,
+      "description": "Hasan Hüseyin (9-A, 112): T.C. 12345678910 kodlanmış, Okul No baloncukları boş, Soru 1-5 = 10x5, Toplam = 050",
+      "expected": {
+        "studentName": "HASAN HÜSEYİN",
+        "tcKimlikNo": "12345678910",
+        "okulNoCoded": "",
+        "okulNoInList": "112",
+        "scores": [10, 10, 10, 10, 10, 0, 0, 0, 0, 0],
+        "totalScore": 50,
+        "codedTotalScore": 50,
+        "hasTotalMismatch": false,
+        "matchStatus": "EXACT_TC",
+        "multipleFormsDetected": false
+      }
+    },
+    {
+      "sourceFile": "Adobe_Scan.pdf",
+      "page": 2,
+      "verified": true,
+      "description": "Ahmet Emir (9-A, 155): T.C. 11223344550, Okul No 00155, Soru 1=05, Soru 2-5=10 (toplam 45), kodlanan Toplam=050 (uyuşmazlık)",
+      "expected": {
+        "studentName": "AHMET EMİR",
+        "tcKimlikNo": "11223344550",
+        "okulNo": "00155",
+        "scores": [5, 10, 10, 10, 10, 0, 0, 0, 0, 0],
+        "totalScore": 45,
+        "codedTotalScore": 50,
+        "hasTotalMismatch": true,
+        "matchStatus": "EXACT_TC",
+        "needsManualReview": true,
+        "multipleFormsDetected": false
+      }
+    },
+    {
+      "sourceFile": "Adobe_Scan.pdf",
+      "page": 3,
+      "verified": true,
+      "description": "Mehmet Bal (9-A, 174): T.C. baloncukları boş, Okul No 00174 kodlanmış, Soru 1-5 = [18,12,9,1,0], Toplam = 040",
+      "expected": {
+        "studentName": "MEHMET BAL",
+        "tcKimlikNoCoded": "",
+        "okulNo": "00174",
+        "scores": [18, 12, 9, 1, 0, 0, 0, 0, 0, 0],
+        "totalScore": 40,
+        "codedTotalScore": 40,
+        "hasTotalMismatch": false,
+        "matchStatus": "OKUL_NO_ONLY",
+        "needsManualReview": true,
+        "multipleFormsDetected": false
+      }
+    },
+    {
+      "sourceFile": "Adobe_Scan.pdf",
+      "page": 4,
+      "verified": true,
+      "description": "Zeynep Tek (9-A, 2345): T.C. ve Okul No baloncukları boş (sadece el yazısı var), Soru 1 = 05, Toplam = 005",
+      "expected": {
+        "studentName": "ZEYNEP TEK",
+        "tcKimlikNoCoded": "",
+        "okulNoCoded": "",
+        "scores": [5, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "totalScore": 5,
+        "codedTotalScore": 5,
+        "hasTotalMismatch": false,
+        "matchStatus": "NONE",
+        "needsManualReview": true,
+        "multipleFormsDetected": false
+      }
+    },
+    {
+      "sourceFile": "Adobe_Scan.pdf",
+      "page": 5,
+      "verified": true,
+      "description": "Ayşe Ekiz (9-A, 89): T.C. 11111111111, Okul No 00089, Soru 1-5 = [10,11,19,6,4], Toplam = 050",
+      "expected": {
+        "studentName": "AYŞE EKİZ",
+        "tcKimlikNo": "11111111111",
+        "okulNo": "00089",
+        "scores": [10, 11, 19, 6, 4, 0, 0, 0, 0, 0],
+        "totalScore": 50,
+        "codedTotalScore": 50,
+        "hasTotalMismatch": false,
+        "matchStatus": "EXACT_TC",
+        "multipleFormsDetected": false
+      }
+    },
+    {
+      "sourceFile": "Optiklik_Pdf.pdf",
+      "page": 1,
+      "verified": true,
+      "description": "Boş tekli 13 bloklu sınav formu (işaretleme yok)",
+      "expected": {
+        "tcKimlikNoCoded": "",
+        "okulNoCoded": "",
+        "scores": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "totalScore": 0,
+        "needsManualReview": true,
+        "multipleFormsDetected": false
+      }
+    },
+    {
+      "sourceFile": "2_Optik.pdf",
+      "page": 1,
+      "verified": true,
+      "description": "Tek sayfada iki boş optik form bulunan dosya",
+      "expected": {
+        "multipleFormsDetected": true,
+        "needsManualReview": true
+      }
+    }
+  ]
+}
