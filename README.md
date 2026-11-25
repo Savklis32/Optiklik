@@ -96,9 +96,14 @@ Uygulama içerisindeki **Formlar** menüsünden aşağıdaki 4 şablon doğrudan
 * **Perspektif ve Izgara:** 4 köşe merkezinden `2100 × 720` kanonik boyuta `warpPerspective`, 13 bloğun (T.C., Okul No, S1–S10, Toplam) dinamik sınır tespiti, morfolojik erozyon ile ince basılı rakamların bastırılması ve adaptif dinamik eşikleme.
 
 ### Test Motoru (`TestOmrProcessor.kt`)
+<<<<<<< HEAD
 
 * **Köşe Tespiti:** `Core.normalize(NORM\_MINMAX)` + `GaussianBlur(5×5)` sonrası `adaptiveThreshold(blockSize=81, C=10)` ve `Otsu` yedeği ile `RETR\_LIST` kontur taraması. Her aday 5 filtreden geçirilir: dışbükey `4..6` köşeli çokgen (`approxPolyDP`), kare en-boy oranı (`0.60..1.65`), doluluk (`>= 0.65`), boyut filtresi ve karenin 4 dış kenarından en parlak 2 kenara göre quiet-zone kontrast doğrulaması.
 * **Perspektif ve Izgara:** 4 siyah kare merkezinden `1000 × 2000` kanonik boyuta `warpPerspective`, kalibre edilmiş `OpticalFormLayout` koordinatları (T.C. `11×10`, Okul No `5×10`, Cevaplar `25×5`) ve **First-Large-Gap** dinamik eşikleme ile şık/çoklu işaretleme (`MULTI` / `Ç`) tespiti.
+=======
+- **Köşe Tespiti:** `Core.normalize(NORM_MINMAX)` + `GaussianBlur(5×5)` sonrası `adaptiveThreshold(blockSize=81, C=10)` ve `Otsu` yedeği ile `RETR_LIST` kontur taraması. Her aday 5 filtreden geçirilir: dışbükey `4..6` köşeli çokgen (`approxPolyDP`), kare en-boy oranı (`0.60..1.65`), doluluk (`>= 0.65`), boyut filtresi ve karenin 4 dış kenarından en parlak 2 kenara göre quiet-zone kontrast doğrulaması.
+- **Perspektif ve Izgara:** 4 siyah kare merkezinden `1000 × 2000` kanonik boyuta `warpPerspective`, kalibre edilmiş `OpticalFormLayout` koordinatları (T.C. `11×10`, Okul No `5×10`, Cevaplar `25×5`) ve **First-Large-Gap** dinamik eşikleme ile şık/çoklu işaretleme (`MULTI` / `Ç`) tespiti.
+>>>>>>> b9d0b0f11af6ac27fed4d69bba1560d7b4c89650
 
 ### İnceleme Bayrakları (`ReviewReason`)
 
