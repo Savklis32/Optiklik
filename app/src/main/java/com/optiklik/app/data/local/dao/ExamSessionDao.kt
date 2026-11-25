@@ -17,6 +17,8 @@ data class ExamSessionWithStats(
     val dersAdi: String,
     val soruSayisi: Int,
     val soruPuanlari: String,
+    val examType: String = "WRITTEN",
+    val cevapAnahtari: String = "",
     val createdAt: Long,
     val paperCount: Int,
     val averageScore: Double
@@ -27,7 +29,7 @@ interface ExamSessionDao {
     @Query(
         """
         SELECT s.id, s.title, s.okulAdi, s.egitimOgretimYili, s.sinavDonemi, s.sinifSubesi, s.dersAdi,
-               s.soruSayisi, s.soruPuanlari, s.createdAt,
+               s.soruSayisi, s.soruPuanlari, s.examType, s.cevapAnahtari, s.createdAt,
                COUNT(r.id) AS paperCount,
                COALESCE(AVG(r.totalScore), 0.0) AS averageScore
         FROM exam_sessions s

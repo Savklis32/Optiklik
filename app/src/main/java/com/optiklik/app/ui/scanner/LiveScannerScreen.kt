@@ -3,16 +3,24 @@ package com.optiklik.app.ui.scanner
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.view.MotionEvent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -27,6 +35,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -50,6 +60,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.optiklik.app.domain.omr.OmrReadResult
 import com.optiklik.app.ui.components.QuestionScoresGrid
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,6 +71,15 @@ fun LiveScannerScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val uiState by viewModel.uiState.collectAsState()
+
+    var isTorchOn by remember { mutableStateOf(false) }
+    var isCapturing by remember { mutableStateOf(false) }
+    var cameraRef by remember { mutableStateOf<Camera?>(null) }
+    val imageCapture = remember {
+        ImageCapture.Builder()
+            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+            .build()
+    }
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -105,6 +125,19 @@ fun LiveScannerScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
+                        IconButton(
+                            onClick = {
+                                val next = !isTorchOn
+                                isTorchOn = next
+                                cameraRef?.cameraControl?.enableTorch(next)
+                            }
+                        ) {
+                            Icon(
+                                imageVector = if (isTorchOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
+                                contentDescription = if (isTorchOn) "Flaşı Kapat" else "Flaşı Aç",
+                                tint = if (isTorchOn) Color(0xFFFACC15) else Color.White
+                            )
+                        }
                         Text(
                             "Otomatik Tara",
                             color = Color.White,
@@ -150,7 +183,10 @@ fun LiveScannerScreen(
         ) {
             val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
             DisposableEffect(Unit) {
-                onDispose { analysisExecutor.shutdown() }
+                onDispose {
+                    cameraRef?.cameraControl?.enableTorch(false)
+                    analysisExecutor.shutdown()
+                }
             }
 
             AndroidView(
@@ -158,6 +194,20 @@ fun LiveScannerScreen(
                 factory = { ctx ->
                     val previewView = PreviewView(ctx).apply {
                         scaleType = PreviewView.ScaleType.FIT_CENTER
+                        setOnTouchListener { view, event ->
+                            if (event.action == MotionEvent.ACTION_UP) {
+                                val point = meteringPointFactory.createPoint(event.x, event.y)
+                                val action = FocusMeteringAction.Builder(
+                                    point,
+                                    FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE
+                                )
+                                    .setAutoCancelDuration(3, TimeUnit.SECONDS)
+                                    .build()
+                                cameraRef?.cameraControl?.startFocusAndMetering(action)
+                                view.performClick()
+                            }
+                            true
+                        }
                     }
                     val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                     cameraProviderFuture.addListener({
@@ -183,12 +233,17 @@ fun LiveScannerScreen(
                             }
                         try {
                             cameraProvider.unbindAll()
-                            cameraProvider.bindToLifecycle(
+                            val boundCamera = cameraProvider.bindToLifecycle(
                                 lifecycleOwner,
                                 CameraSelector.DEFAULT_BACK_CAMERA,
                                 preview,
-                                imageAnalysis
+                                imageAnalysis,
+                                imageCapture
                             )
+                            cameraRef = boundCamera
+                            if (isTorchOn) {
+                                boundCamera.cameraControl.enableTorch(true)
+                            }
                         } catch (_: Exception) {
                         }
                     }, ContextCompat.getMainExecutor(ctx))
@@ -198,11 +253,34 @@ fun LiveScannerScreen(
 
             // Transparent OMR Guide Frame Overlay (Green when detected, Red otherwise)
             val guideColor = if (uiState.guidance.isReady) Color(0xFF22C55E) else Color(0xFFEF4444)
+            val isTestMode = uiState.examType == "TEST"
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val rectW = size.width * 0.94f
-                val rectH = rectW / 2.85f
+                // Compute PreviewView FIT_CENTER active camera area first
+                val frameAspect = uiState.frameAspectRatio.coerceIn(0.3f, 2.0f)
+                val viewAspect = size.width / size.height.coerceAtLeast(1f)
+                val (pvW, pvH) = if (frameAspect < viewAspect) {
+                    (size.height * frameAspect) to size.height
+                } else {
+                    size.width to (size.width / frameAspect)
+                }
+                val pvLeft = (size.width - pvW) / 2f
+                val pvTop = (size.height - pvH) / 2f
+
+                val (rectW, rectH) = if (isTestMode) {
+                    val maxH = (size.height - 200.dp.toPx()).coerceAtLeast(size.height * 0.68f)
+                    val maxW = size.width * 0.90f
+                    val w = minOf(maxW, maxH * 0.44f)
+                    w to (w / 0.44f)
+                } else {
+                    val w = pvW * 0.94f
+                    w to (w / 2.85f)
+                }
                 val left = (size.width - rectW) / 2f
-                val top = (size.height - rectH) / 2f
+                val top = if (isTestMode) {
+                    ((size.height - rectH) / 2f).coerceAtLeast(72.dp.toPx())
+                } else {
+                    pvTop + (pvH - rectH) / 2f
+                }
 
                 // Dimmed surround
                 drawRect(color = Color.Black.copy(alpha = 0.45f))
@@ -221,20 +299,11 @@ fun LiveScannerScreen(
                     style = Stroke(width = 6f)
                 )
 
-                // Draw green target crosshairs (+) aligned to PreviewView FIT_CENTER 28%..72% band
-                val frameAspect = uiState.frameAspectRatio.coerceIn(0.3f, 2.0f)
-                val viewAspect = size.width / size.height.coerceAtLeast(1f)
-                val (pvW, pvH) = if (frameAspect < viewAspect) {
-                    (size.height * frameAspect) to size.height
-                } else {
-                    size.width to (size.width / frameAspect)
-                }
-                val pvLeft = (size.width - pvW) / 2f
-                val pvTop = (size.height - pvH) / 2f
-                val roiScreenW = pvW
-                val roiScreenH = pvH * 0.64f
-                val roiLeft = pvLeft
-                val roiTop = pvTop + pvH * 0.18f
+                // Draw green target crosshairs (+) aligned to PreviewView FIT_CENTER
+                val roiScreenW = if (isTestMode) pvW * 0.82f else pvW
+                val roiScreenH = if (isTestMode) pvH * 0.84f else pvH * 0.64f
+                val roiLeft = if (isTestMode) pvLeft + pvW * 0.09f else pvLeft
+                val roiTop = if (isTestMode) pvTop + pvH * 0.08f else pvTop + pvH * 0.18f
 
                 uiState.markerPointsNormalized.forEach { (nx, ny) ->
                     val cx = roiLeft + nx * roiScreenW
@@ -332,10 +401,51 @@ fun LiveScannerScreen(
                 }
             }
 
-            // Tap-to-Scan shutter button at bottom-center (instant scan from latest ImageAnalysis frame)
+            // Tap-to-Scan shutter button at bottom-center
             if (!uiState.showSavedBanner) {
                 LargeFloatingActionButton(
-                    onClick = { viewModel.captureLatestFrameAndScan() },
+                    onClick = {
+                        if (uiState.examType == "TEST") {
+                            if (isCapturing) return@LargeFloatingActionButton
+                            isCapturing = true
+                            imageCapture.takePicture(
+                                analysisExecutor,
+                                object : ImageCapture.OnImageCapturedCallback() {
+                                    override fun onCaptureSuccess(imageProxy: ImageProxy) {
+                                        var bmp: Bitmap? = null
+                                        try {
+                                            val buffer = imageProxy.planes.firstOrNull()?.buffer
+                                            bmp = if (buffer != null && imageProxy.planes.size == 1) {
+                                                val bytes = ByteArray(buffer.remaining())
+                                                buffer.get(bytes)
+                                                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                            } else {
+                                                imageProxy.toBitmap()
+                                            }
+                                            if (bmp != null) {
+                                                viewModel.captureAndScanNow(bmp, imageProxy.imageInfo.rotationDegrees)
+                                            } else {
+                                                viewModel.captureLatestFrameAndScan()
+                                            }
+                                        } finally {
+                                            if (bmp != null && !bmp.isRecycled) {
+                                                bmp.recycle()
+                                            }
+                                            imageProxy.close()
+                                            isCapturing = false
+                                        }
+                                    }
+
+                                    override fun onError(exception: ImageCaptureException) {
+                                        isCapturing = false
+                                        viewModel.captureLatestFrameAndScan()
+                                    }
+                                }
+                            )
+                        } else {
+                            viewModel.captureLatestFrameAndScan()
+                        }
+                    },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 28.dp),
@@ -343,17 +453,25 @@ fun LiveScannerScreen(
                     containerColor = if (uiState.guidance.isReady) Color(0xFF16A34A) else Color(0xFF2563EB),
                     contentColor = Color.White
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.CameraAlt,
-                            contentDescription = "Tara / Çek",
-                            modifier = Modifier.size(28.dp)
+                    if (isCapturing) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            strokeWidth = 3.dp,
+                            modifier = Modifier.size(30.dp)
                         )
-                        Text(
-                            "Tara",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold
-                        )
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.CameraAlt,
+                                contentDescription = "Tara / Çek",
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Text(
+                                "Tara",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
@@ -422,7 +540,23 @@ fun LiveScannerScreen(
                             maxLines = 1
                         )
                         Spacer(Modifier.height(6.dp))
-                        QuestionScoresGrid(scores = savedRes.scores)
+                        if (uiState.examType == "TEST") {
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = MaterialTheme.shapes.small,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "Doğru: ${savedRes.correctCount}  •  Yanlış: ${savedRes.wrongCount}  •  Boş: ${savedRes.blankCount}  •  Toplam: ${savedRes.totalScore} Puan",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
+                        } else {
+                            QuestionScoresGrid(scores = savedRes.scores)
+                        }
                         val bannerWarnings = if (uiState.lastSavedWarnings.isNotEmpty()) {
                             uiState.lastSavedWarnings
                         } else if (savedRes.hasTotalMismatch) {

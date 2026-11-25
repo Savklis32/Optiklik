@@ -186,7 +186,58 @@ fun BatchScanScreen(
                                         )
                                         report.readResult?.let { read ->
                                             Spacer(Modifier.height(6.dp))
-                                            QuestionScoresGrid(scores = read.scores)
+                                            if (uiState.examType == "TEST") {
+                                                Text(
+                                                    text = "Doğru: ${read.correctCount}  •  Yanlış: ${read.wrongCount}  •  Boş: ${read.blankCount}",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                                Spacer(Modifier.height(4.dp))
+                                                val count = uiState.soruSayisi.coerceIn(1, 25)
+                                                @OptIn(ExperimentalLayoutApi::class)
+                                                FlowRow(
+                                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                                ) {
+                                                    for (q in 0 until count) {
+                                                        val ans = read.studentAnswers.getOrElse(q) { "" }
+                                                        val expected = uiState.answerKey.getOrElse(q) { "" }
+                                                        val pt = read.scores.getOrElse(q) { 0 }
+                                                        val isBlank = ans.isBlank()
+                                                        val isCorrect = !isBlank && ans != "MULTI" && expected.isNotBlank() && ans == expected
+                                                        val bgColor = when {
+                                                            isCorrect -> Color(0xFFDCFCE7)
+                                                            isBlank -> MaterialTheme.colorScheme.surfaceVariant
+                                                            else -> Color(0xFFFEE2E2)
+                                                        }
+                                                        val fgColor = when {
+                                                            isCorrect -> Color(0xFF166534)
+                                                            isBlank -> MaterialTheme.colorScheme.onSurfaceVariant
+                                                            else -> Color(0xFF991B1B)
+                                                        }
+                                                        val ansLabel = when {
+                                                            isBlank -> "-"
+                                                            ans == "MULTI" -> "Ç"
+                                                            else -> ans
+                                                        }
+                                                        Surface(
+                                                            color = bgColor,
+                                                            shape = MaterialTheme.shapes.extraSmall
+                                                        ) {
+                                                            Text(
+                                                                text = "S${q + 1}:$ansLabel($pt)",
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = fgColor,
+                                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                QuestionScoresGrid(scores = read.scores)
+                                            }
                                         }
                                     }
                                 }

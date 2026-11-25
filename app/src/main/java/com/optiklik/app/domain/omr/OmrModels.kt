@@ -15,13 +15,16 @@ sealed class GuidanceState(val message: String, val isReady: Boolean = false) {
     data object TooClose : GuidanceState("Kamerayı kağıttan uzaklaştırın.")
     data object Blurry : GuidanceState("Görüntü bulanık, telefonu sabit tutun.")
     data object TooSkewed : GuidanceState("Telefonu kağıda paralel tutun.")
+    data object BottomEdgeClipped : GuidanceState("Sayfanın alt kenarını kadraja alın")
+    data object TopEdgeClipped : GuidanceState("Sayfanın üst kenarını kadraja alın")
+    data object UnclearCorners : GuidanceState("Köşe net değil, kağıdı düz tutun ve ışığı artırın")
 }
 
 data class OmrReadResult(
     val tcKimlikNo: String,
     val okulNo: String = "",
     val isTcValid: Boolean,
-    val scores: List<Int>, // 10 scores (Soru 1..10), each 0..99
+    val scores: List<Int>, // 10 scores (WRITTEN) or 1..25 scores (TEST)
     val totalScore: Int,
     val codedTotalScore: Int? = null,
     val hasTotalMismatch: Boolean = false,
@@ -30,7 +33,11 @@ data class OmrReadResult(
     val reviewReasons: List<ReviewReason> = emptyList(),
     val warnings: List<String> = emptyList(),
     val debugBitmap: Bitmap? = null,
-    val debugImagePath: String? = null
+    val debugImagePath: String? = null,
+    val studentAnswers: List<String> = emptyList(),
+    val correctCount: Int = 0,
+    val wrongCount: Int = 0,
+    val blankCount: Int = 0
 )
 
 data class OmrFrameAnalysis(

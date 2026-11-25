@@ -9,7 +9,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
@@ -205,22 +207,31 @@ fun ExamResultsScreen(
                     }
                 }
 
-                val activeQuestionCount = uiState.soruSayisi.coerceIn(1, 10)
-                val questionAverages = remember(results, activeQuestionCount) {
+                val isTestExam = uiState.examType == "TEST"
+                val activeQuestionCount = if (isTestExam) {
+                    uiState.soruSayisi.coerceIn(1, 25)
+                } else {
+                    uiState.soruSayisi.coerceIn(1, 10)
+                }
+                val questionAverages = remember(results, activeQuestionCount, isTestExam) {
                     (0 until activeQuestionCount).map { q ->
                         results.map { item ->
                             val r = item.result
-                            when (q) {
-                                0 -> r.score1
-                                1 -> r.score2
-                                2 -> r.score3
-                                3 -> r.score4
-                                4 -> r.score5
-                                5 -> r.score6
-                                6 -> r.score7
-                                7 -> r.score8
-                                8 -> r.score9
-                                else -> r.score10
+                            if (isTestExam) {
+                                r.parsedScoresJson().getOrElse(q) { 0 }
+                            } else {
+                                when (q) {
+                                    0 -> r.score1
+                                    1 -> r.score2
+                                    2 -> r.score3
+                                    3 -> r.score4
+                                    4 -> r.score5
+                                    5 -> r.score6
+                                    6 -> r.score7
+                                    7 -> r.score8
+                                    8 -> r.score9
+                                    else -> r.score10
+                                }
                             }
                         }.average()
                     }
@@ -397,6 +408,9 @@ fun ExamResultsScreen(
                         ResultRowCard(
                             index = idx + 1,
                             item = item,
+                            examType = uiState.examType,
+                            soruSayisi = activeQuestionCount,
+                            answerKey = uiState.answerKey,
                             onClick = { editingItem = item }
                         )
                     }
@@ -522,8 +536,14 @@ fun ExamResultsScreen(
     editingItem?.let { item ->
         EditResultDialog(
             item = item,
+            examType = uiState.examType,
+            soruSayisi = uiState.soruSayisi,
             onSave = { tc, okulNo, scores ->
                 viewModel.updateResult(item.result, tc, okulNo, scores)
+                editingItem = null
+            },
+            onSaveTest = { tc, okulNo, answers ->
+                viewModel.updateTestResult(item.result, tc, okulNo, answers)
                 editingItem = null
             },
             onDelete = {
@@ -535,10 +555,14 @@ fun ExamResultsScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ResultRowCard(
     index: Int,
     item: ExamResultWithStudent,
+    examType: String = "WRITTEN",
+    soruSayisi: Int = 10,
+    answerKey: List<String> = emptyList(),
     onClick: () -> Unit
 ) {
     val r = item.result
@@ -604,7 +628,73 @@ private fun ResultRowCard(
                 }
             }
             Spacer(Modifier.height(8.dp))
-            QuestionScoresGrid(scores = r.scoresList())
+            if (examType == "TEST") {
+                val answers = r.parsedStudentAnswers()
+                val scores = r.parsedScoresJson()
+                val count = soruSayisi.coerceIn(1, 25)
+                var correct = 0
+                var wrong = 0
+                var blank = 0
+                for (q in 0 until count) {
+                    val ans = answers.getOrElse(q) { "" }
+                    val expected = answerKey.getOrElse(q) { "" }
+                    if (ans.isBlank()) {
+                        blank++
+                    } else if (ans != "MULTI" && expected.isNotBlank() && ans == expected) {
+                        correct++
+                    } else {
+                        wrong++
+                    }
+                }
+                Text(
+                    text = "Doğru: $correct  •  Yanlış: $wrong  •  Boş: $blank",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(6.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    for (q in 0 until count) {
+                        val ans = answers.getOrElse(q) { "" }
+                        val expected = answerKey.getOrElse(q) { "" }
+                        val pt = scores.getOrElse(q) { 0 }
+                        val isBlank = ans.isBlank()
+                        val isCorrect = !isBlank && ans != "MULTI" && expected.isNotBlank() && ans == expected
+                        val bgColor = when {
+                            isCorrect -> Color(0xFFDCFCE7)
+                            isBlank -> MaterialTheme.colorScheme.surfaceVariant
+                            else -> Color(0xFFFEE2E2)
+                        }
+                        val fgColor = when {
+                            isCorrect -> Color(0xFF166534)
+                            isBlank -> MaterialTheme.colorScheme.onSurfaceVariant
+                            else -> Color(0xFF991B1B)
+                        }
+                        val ansLabel = when {
+                            isBlank -> "-"
+                            ans == "MULTI" -> "Ç"
+                            else -> ans
+                        }
+                        Surface(
+                            color = bgColor,
+                            shape = MaterialTheme.shapes.extraSmall
+                        ) {
+                            Text(
+                                text = "S${q + 1}:$ansLabel($pt)",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = fgColor,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+            } else {
+                QuestionScoresGrid(scores = r.scoresList())
+            }
             val reasons = r.formattedReviewLabels()
             if (r.hasTotalMismatch || reasons.isNotEmpty()) {
                 Spacer(Modifier.height(6.dp))
@@ -633,11 +723,16 @@ private fun ResultRowCard(
 @Composable
 private fun EditResultDialog(
     item: ExamResultWithStudent,
+    examType: String = "WRITTEN",
+    soruSayisi: Int = 10,
     onSave: (String, String, List<Int>) -> Unit,
+    onSaveTest: (String, String, List<String>) -> Unit = { _, _, _ -> },
     onDelete: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val r = item.result
+    val isTestExam = examType == "TEST"
+    val testCount = soruSayisi.coerceIn(1, 25)
     var tc by remember { mutableStateOf(r.tcKimlikNo) }
     var okulNo by remember {
         mutableStateOf(
@@ -650,12 +745,24 @@ private fun EditResultDialog(
             r.scoresList().forEach { add(it.toString()) }
         }
     }
+    val answerStates = remember {
+        val existing = r.parsedStudentAnswers()
+        mutableStateListOf<String>().apply {
+            for (idx in 0 until testCount) {
+                val ans = existing.getOrElse(idx) { "" }.trim().uppercase(Locale.ROOT)
+                add(if (ans in listOf("A", "B", "C", "D", "E")) ans else "")
+            }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Sonucu Düzenle") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = if (isTestExam) Modifier.verticalScroll(rememberScrollState()) else Modifier,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 if (!item.fullName.isNullOrBlank()) {
                     Text(
                         "${item.schoolNo ?: ""} - ${item.fullName}",
@@ -680,28 +787,82 @@ private fun EditResultDialog(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    (0..4).forEach { idx ->
-                        OutlinedTextField(
-                            value = scoreStates[idx],
-                            onValueChange = { scoreStates[idx] = it.filter { c -> c.isDigit() }.take(2) },
-                            label = { Text("S${idx + 1}") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
+                if (isTestExam) {
+                    Text(
+                        "Öğrenci Cevapları (1–$testCount)",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        for (idx in 0 until testCount) {
+                            val current = answerStates[idx]
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "S${idx + 1}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.width(32.dp)
+                                )
+                                listOf("A", "B", "C", "D", "E", "-").forEach { opt ->
+                                    val optValue = if (opt == "-") "" else opt
+                                    val isSelected = current == optValue
+                                    Surface(
+                                        shape = MaterialTheme.shapes.small,
+                                        color = if (isSelected) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                        },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(30.dp)
+                                            .clickable { answerStates[idx] = optValue }
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = opt,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) {
+                                                    MaterialTheme.colorScheme.onPrimary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    (5..9).forEach { idx ->
-                        OutlinedTextField(
-                            value = scoreStates[idx],
-                            onValueChange = { scoreStates[idx] = it.filter { c -> c.isDigit() }.take(2) },
-                            label = { Text("S${idx + 1}") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        (0..4).forEach { idx ->
+                            OutlinedTextField(
+                                value = scoreStates[idx],
+                                onValueChange = { scoreStates[idx] = it.filter { c -> c.isDigit() }.take(2) },
+                                label = { Text("S${idx + 1}") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        (5..9).forEach { idx ->
+                            OutlinedTextField(
+                                value = scoreStates[idx],
+                                onValueChange = { scoreStates[idx] = it.filter { c -> c.isDigit() }.take(2) },
+                                label = { Text("S${idx + 1}") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
             }
@@ -709,7 +870,11 @@ private fun EditResultDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    onSave(tc, okulNo, scoreStates.map { it.toIntOrNull() ?: 0 })
+                    if (isTestExam) {
+                        onSaveTest(tc, okulNo, answerStates.toList())
+                    } else {
+                        onSave(tc, okulNo, scoreStates.map { it.toIntOrNull() ?: 0 })
+                    }
                 }
             ) {
                 Text("Kaydet")

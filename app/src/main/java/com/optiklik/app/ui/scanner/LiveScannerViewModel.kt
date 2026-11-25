@@ -13,6 +13,7 @@ import com.optiklik.app.domain.omr.GuidanceState
 import com.optiklik.app.domain.omr.OmrProcessor
 import com.optiklik.app.domain.omr.OmrReadResult
 import com.optiklik.app.domain.omr.TcKimlikValidator
+import com.optiklik.app.domain.omr.TestOmrProcessor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +24,7 @@ import kotlinx.coroutines.withContext
 
 data class LiveScannerUiState(
     val examTitle: String = "",
+    val examType: String = "WRITTEN",
     val isAutoScanEnabled: Boolean = false,
     val frameAspectRatio: Float = 9f / 16f,
     val guidance: GuidanceState = GuidanceState.FrameNotFound,
@@ -44,7 +46,8 @@ data class LiveScannerUiState(
 class LiveScannerViewModel(
     private val examSessionId: Long,
     private val repository: OptiklikRepository,
-    private val omrProcessor: OmrProcessor = OmrProcessor()
+    private val omrProcessor: OmrProcessor = OmrProcessor(),
+    private val testOmrProcessor: TestOmrProcessor = TestOmrProcessor()
 ) : ViewModel() {
 
     companion object {
@@ -61,8 +64,10 @@ class LiveScannerViewModel(
     private var lastSavedTc: String? = null
     private var lastSavedTime: Long = 0L
     private var activeOkulAdi: String = ""
+    private var activeExamType: String = "WRITTEN"
     private var activeSoruSayisi: Int = 10
     private var activeMaxScores: List<Int> = List(10) { 10 }
+    private var activeAnswerKey: List<String> = emptyList()
 
     private val latestFrameLock = Any()
     private var latestFrameBitmap: Bitmap? = null
@@ -74,9 +79,24 @@ class LiveScannerViewModel(
         viewModelScope.launch {
             val session = repository.getSessionById(examSessionId)
             activeOkulAdi = session?.okulAdi.orEmpty()
+            activeExamType = session?.examType ?: "WRITTEN"
             activeSoruSayisi = session?.soruSayisi ?: 10
-            activeMaxScores = session?.parsedMaxScores() ?: List(10) { 10 }
-            _uiState.update { it.copy(examTitle = session?.title ?: "Canlı Tarama") }
+            activeMaxScores = if (activeExamType == "TEST") {
+                session?.parsedTestMaxScores() ?: List(activeSoruSayisi) { 0 }
+            } else {
+                session?.parsedMaxScores() ?: List(10) { 10 }
+            }
+            activeAnswerKey = if (activeExamType == "TEST") {
+                session?.parsedAnswerKey().orEmpty()
+            } else {
+                emptyList()
+            }
+            _uiState.update {
+                it.copy(
+                    examTitle = session?.title ?: "Canlı Tarama",
+                    examType = activeExamType
+                )
+            }
         }
     }
 
@@ -111,21 +131,33 @@ class LiveScannerViewModel(
 
         val rotated = rotateBitmap(rawBitmap, rotationDegrees)
         val frameAspect = rotated.width.toFloat() / rotated.height.coerceAtLeast(1).toFloat()
-        val roi = cropCenterGuideRoi(rotated)
-        if (rotated !== rawBitmap) rotated.recycle()
+        val roi = if (activeExamType == "TEST") rotated else cropCenterGuideRoi(rotated)
+        if (roi !== rotated && rotated !== rawBitmap) rotated.recycle()
 
         // In default Manual mode, only detect 4 corners for live green crosshair feedback
         val analysis = try {
-            omrProcessor.analyzeBitmap(
-                roi,
-                isLiveCamera = true,
-                includeDebugBitmap = state.isAutoScanEnabled,
-                detectCornersOnly = !state.isAutoScanEnabled,
-                soruSayisi = activeSoruSayisi,
-                maxScores = activeMaxScores
-            )
+            if (activeExamType == "TEST") {
+                testOmrProcessor.analyzeBitmap(
+                    roi,
+                    isLiveCamera = true,
+                    includeDebugBitmap = state.isAutoScanEnabled,
+                    detectCornersOnly = !state.isAutoScanEnabled,
+                    soruSayisi = activeSoruSayisi,
+                    answerKey = activeAnswerKey,
+                    maxScores = activeMaxScores
+                )
+            } else {
+                omrProcessor.analyzeBitmap(
+                    roi,
+                    isLiveCamera = true,
+                    includeDebugBitmap = state.isAutoScanEnabled,
+                    detectCornersOnly = !state.isAutoScanEnabled,
+                    soruSayisi = activeSoruSayisi,
+                    maxScores = activeMaxScores
+                )
+            }
         } finally {
-            roi.recycle()
+            if (roi !== rawBitmap) roi.recycle()
         }
 
         if (!state.isAutoScanEnabled) {
@@ -244,20 +276,32 @@ class LiveScannerViewModel(
         }
 
         val rotated = rotateBitmap(rawBitmap, rotationDegrees)
-        val roi = cropCenterGuideRoi(rotated)
-        if (rotated !== rawBitmap) rotated.recycle()
+        val roi = if (activeExamType == "TEST") cropTestGuideRoi(rotated) else cropCenterGuideRoi(rotated)
+        if (roi !== rotated && rotated !== rawBitmap) rotated.recycle()
 
         val analysis = try {
-            omrProcessor.analyzeBitmap(
-                roi,
-                isLiveCamera = true,
-                includeDebugBitmap = true,
-                isSingleShotCapture = true,
-                soruSayisi = activeSoruSayisi,
-                maxScores = activeMaxScores
-            )
+            if (activeExamType == "TEST") {
+                testOmrProcessor.analyzeBitmap(
+                    roi,
+                    isLiveCamera = true,
+                    includeDebugBitmap = true,
+                    isSingleShotCapture = true,
+                    soruSayisi = activeSoruSayisi,
+                    answerKey = activeAnswerKey,
+                    maxScores = activeMaxScores
+                )
+            } else {
+                omrProcessor.analyzeBitmap(
+                    roi,
+                    isLiveCamera = true,
+                    includeDebugBitmap = true,
+                    isSingleShotCapture = true,
+                    soruSayisi = activeSoruSayisi,
+                    maxScores = activeMaxScores
+                )
+            }
         } finally {
-            roi.recycle()
+            if (roi !== rawBitmap) roi.recycle()
         }
 
         _uiState.update {
@@ -357,15 +401,38 @@ class LiveScannerViewModel(
         viewModelScope.launch {
             val cleanTc = tc.trim()
             val validTc = TcKimlikValidator.isValid(cleanTc)
-            val clampedScores = (0 until 10).map { idx -> (scores.getOrNull(idx) ?: 0).coerceIn(0, 99) }
-            val corrected = OmrReadResult(
-                tcKimlikNo = cleanTc,
-                okulNo = _uiState.value.invalidTcCandidate?.okulNo.orEmpty(),
-                isTcValid = validTc,
-                scores = clampedScores,
-                totalScore = clampedScores.sum(),
-                needsManualReview = false
-            )
+            val candidate = _uiState.value.invalidTcCandidate
+            val corrected = if (activeExamType == "TEST" && candidate != null) {
+                val testCount = activeSoruSayisi.coerceIn(1, 25)
+                val preservedScores = (0 until testCount).map { idx ->
+                    candidate.scores.getOrElse(idx) { 0 }.coerceIn(0, 100)
+                }
+                val preservedAnswers = (0 until testCount).map { idx ->
+                    candidate.studentAnswers.getOrElse(idx) { "" }
+                }
+                OmrReadResult(
+                    tcKimlikNo = cleanTc,
+                    okulNo = candidate.okulNo,
+                    isTcValid = validTc,
+                    scores = preservedScores,
+                    totalScore = preservedScores.sum(),
+                    needsManualReview = false,
+                    studentAnswers = preservedAnswers,
+                    correctCount = candidate.correctCount,
+                    wrongCount = candidate.wrongCount,
+                    blankCount = candidate.blankCount
+                )
+            } else {
+                val clampedScores = (0 until 10).map { idx -> (scores.getOrNull(idx) ?: 0).coerceIn(0, 99) }
+                OmrReadResult(
+                    tcKimlikNo = cleanTc,
+                    okulNo = candidate?.okulNo.orEmpty(),
+                    isTcValid = validTc,
+                    scores = clampedScores,
+                    totalScore = clampedScores.sum(),
+                    needsManualReview = false
+                )
+            }
             val resolved = repository.resolveStudent(examSessionId, cleanTc, corrected.okulNo)
             val existing = if (resolved.tcKimlikNo.length == 11) {
                 repository.findResultByTc(examSessionId, resolved.tcKimlikNo)
@@ -424,7 +491,9 @@ class LiveScannerViewModel(
             isTcValid = resolved.isTcValid,
             needsManualReview = needsReview,
             matchStatus = resolved.matchStatus.name,
-            reviewReasons = ExamResultEntity.encodeReviewReasonEnums(allReasons)
+            reviewReasons = ExamResultEntity.encodeReviewReasonEnums(allReasons),
+            scoresJson = if (activeExamType == "TEST") ExamResultEntity.encodeScoresJson(read.scores) else "[]",
+            studentAnswersJson = if (activeExamType == "TEST") ExamResultEntity.encodeStudentAnswersJson(read.studentAnswers) else "[]"
         )
         repository.saveResult(entity)
         lastSavedTc = resolved.tcKimlikNo
@@ -465,6 +534,20 @@ class LiveScannerViewModel(
         val roiH = (h * 0.64f).toInt().coerceAtLeast(10)
         val top = (h * 0.18f).toInt().coerceIn(0, (h - roiH).coerceAtLeast(0))
         return Bitmap.createBitmap(bitmap, 0, top, w, roiH)
+    }
+
+    /**
+     * Crops the central vertical guide region (82% width, 84% height) for TEST mode
+     * so dark background margins do not interfere with corner square detection.
+     */
+    private fun cropTestGuideRoi(bitmap: Bitmap): Bitmap {
+        val w = bitmap.width
+        val h = bitmap.height
+        val roiW = (w * 0.82f).toInt().coerceAtLeast(10)
+        val roiH = (h * 0.84f).toInt().coerceAtLeast(10)
+        val left = (w * 0.09f).toInt().coerceIn(0, (w - roiW).coerceAtLeast(0))
+        val top = (h * 0.08f).toInt().coerceIn(0, (h - roiH).coerceAtLeast(0))
+        return Bitmap.createBitmap(bitmap, left, top, roiW, roiH)
     }
 
     class Factory(

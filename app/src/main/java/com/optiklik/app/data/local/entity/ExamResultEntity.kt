@@ -69,11 +69,19 @@ data class ExamResultEntity(
     val matchStatus: String = "NONE",
     @ColumnInfo(defaultValue = "[]")
     val reviewReasons: String = "[]",
+    @ColumnInfo(defaultValue = "[]")
+    val scoresJson: String = "[]",
+    @ColumnInfo(defaultValue = "[]")
+    val studentAnswersJson: String = "[]",
     val scannedAt: Long = System.currentTimeMillis()
 ) {
     fun scoresList(): List<Int> = listOf(
         score1, score2, score3, score4, score5, score6, score7, score8, score9, score10
     )
+
+    fun parsedScoresJson(): List<Int> = decodeIntArray(scoresJson)
+
+    fun parsedStudentAnswers(): List<String> = decodeStringArray(studentAnswersJson)
 
     fun parsedReviewReasons(): List<String> = decodeReviewReasons(reviewReasons)
 
@@ -105,6 +113,42 @@ data class ExamResultEntity(
                 }
             } catch (_: Exception) {
                 trimmed.split("|").map { it.trim() }.filter { it.isNotBlank() }
+            }
+        }
+
+        fun encodeScoresJson(scores: List<Int>): String =
+            JSONArray().apply { scores.forEach { put(it) } }.toString()
+
+        fun encodeStudentAnswersJson(answers: List<String>): String =
+            JSONArray().apply { answers.forEach { put(it.trim()) } }.toString()
+
+        fun decodeIntArray(json: String): List<Int> {
+            val trimmed = json.trim()
+            if (trimmed.isEmpty() || trimmed == "[]") return emptyList()
+            return try {
+                val arr = JSONArray(trimmed)
+                buildList {
+                    for (i in 0 until arr.length()) {
+                        add(arr.optInt(i, 0))
+                    }
+                }
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
+
+        fun decodeStringArray(json: String): List<String> {
+            val trimmed = json.trim()
+            if (trimmed.isEmpty() || trimmed == "[]") return emptyList()
+            return try {
+                val arr = JSONArray(trimmed)
+                buildList {
+                    for (i in 0 until arr.length()) {
+                        add(arr.optString(i, "").trim())
+                    }
+                }
+            } catch (_: Exception) {
+                emptyList()
             }
         }
     }

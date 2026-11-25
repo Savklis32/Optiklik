@@ -67,19 +67,27 @@ class OptiklikRepository(private val db: OptiklikDatabase) {
         sinifSubesi: String,
         dersAdi: String = "",
         soruSayisi: Int = 10,
-        soruPuanlari: String = "10,10,10,10,10,10,10,10,10,10"
-    ): Long = sessionDao.insert(
-        ExamSessionEntity(
-            title = title.trim(),
-            okulAdi = okulAdi.trim(),
-            egitimOgretimYili = egitimOgretimYili.trim().ifBlank { "2026-2027" },
-            sinavDonemi = sinavDonemi.trim().ifBlank { "1. Dönem 1. Yazılı Yoklama" },
-            sinifSubesi = normalizeClassBranch(sinifSubesi),
-            dersAdi = dersAdi.trim(),
-            soruSayisi = soruSayisi.coerceIn(1, 10),
-            soruPuanlari = soruPuanlari.trim().ifBlank { "10,10,10,10,10,10,10,10,10,10" }
+        soruPuanlari: String = "10,10,10,10,10,10,10,10,10,10",
+        examType: String = "WRITTEN",
+        cevapAnahtari: String = ""
+    ): Long {
+        val cleanType = if (examType == "TEST") "TEST" else "WRITTEN"
+        val coercedCount = if (cleanType == "TEST") soruSayisi.coerceIn(1, 25) else soruSayisi.coerceIn(1, 10)
+        return sessionDao.insert(
+            ExamSessionEntity(
+                title = title.trim(),
+                okulAdi = okulAdi.trim(),
+                egitimOgretimYili = egitimOgretimYili.trim().ifBlank { "2026-2027" },
+                sinavDonemi = sinavDonemi.trim().ifBlank { "1. Dönem 1. Yazılı Yoklama" },
+                sinifSubesi = normalizeClassBranch(sinifSubesi),
+                dersAdi = dersAdi.trim(),
+                soruSayisi = coercedCount,
+                soruPuanlari = soruPuanlari.trim().ifBlank { "10,10,10,10,10,10,10,10,10,10" },
+                examType = cleanType,
+                cevapAnahtari = cevapAnahtari.trim()
+            )
         )
-    )
+    }
 
     suspend fun deleteSession(sessionId: Long) =
         sessionDao.deleteById(sessionId)

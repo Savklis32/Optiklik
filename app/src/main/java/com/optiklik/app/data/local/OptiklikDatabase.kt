@@ -20,7 +20,7 @@ import com.optiklik.app.data.local.entity.StudentDirectoryEntity
         ExamResultEntity::class,
         StudentDirectoryEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 abstract class OptiklikDatabase : RoomDatabase() {
@@ -198,6 +198,15 @@ abstract class OptiklikDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE exam_sessions ADD COLUMN examType TEXT NOT NULL DEFAULT 'WRITTEN'")
+                db.execSQL("ALTER TABLE exam_sessions ADD COLUMN cevapAnahtari TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE exam_results ADD COLUMN scoresJson TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("ALTER TABLE exam_results ADD COLUMN studentAnswersJson TEXT NOT NULL DEFAULT '[]'")
+            }
+        }
+
         fun applyPartialUniqueIndexes(db: SupportSQLiteDatabase) {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_exam_results_examSessionId` ON `exam_results` (`examSessionId`)")
             db.execSQL("DROP INDEX IF EXISTS `index_exam_results_examSessionId_tcKimlikNo`")
@@ -225,7 +234,7 @@ abstract class OptiklikDatabase : RoomDatabase() {
                     OptiklikDatabase::class.java,
                     "optiklik.db"
                 )
-                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)

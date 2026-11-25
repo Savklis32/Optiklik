@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 
 data class ResultsUiState(
     val examTitle: String = "",
+    val examType: String = "WRITTEN",
     val okulAdi: String = "",
     val egitimOgretimYili: String = "",
     val sinavDonemi: String = "",
@@ -33,6 +34,7 @@ data class ResultsUiState(
     val sinifSubesi: String = "",
     val soruSayisi: Int = 10,
     val maxScores: List<Int> = List(10) { 10 },
+    val answerKey: List<String> = emptyList(),
     val isExporting: Boolean = false,
     val statusMessage: String? = null,
     val exportedFile: ExportedExcelFile? = null
@@ -83,16 +85,24 @@ class ExamResultsViewModel(
     init {
         viewModelScope.launch {
             val session = repository.getSessionById(examSessionId)
+            val isTest = session?.isTestExam == true
+            val qCount = session?.soruSayisi ?: 10
             _uiState.update {
                 it.copy(
                     examTitle = session?.title ?: "Sınav Sonuçları",
+                    examType = session?.examType ?: "WRITTEN",
                     okulAdi = session?.okulAdi ?: "",
                     egitimOgretimYili = session?.egitimOgretimYili ?: "",
                     sinavDonemi = session?.sinavDonemi ?: "",
                     dersAdi = session?.dersAdi ?: "",
                     sinifSubesi = session?.sinifSubesi ?: "",
-                    soruSayisi = session?.soruSayisi ?: 10,
-                    maxScores = session?.parsedMaxScores() ?: List(10) { 10 }
+                    soruSayisi = qCount,
+                    maxScores = if (isTest) {
+                        session?.parsedTestMaxScores() ?: List(qCount) { 0 }
+                    } else {
+                        session?.parsedMaxScores() ?: List(10) { 10 }
+                    },
+                    answerKey = if (isTest) session?.parsedAnswerKey().orEmpty() else emptyList()
                 )
             }
         }
@@ -134,6 +144,64 @@ class ExamResultsViewModel(
                 )
             )
             _uiState.update { it.copy(statusMessage = "Öğrenci sonucu güncellendi.") }
+        }
+    }
+
+    fun updateTestResult(
+        original: ExamResultEntity,
+        newTc: String,
+        newOkulNo: String,
+        studentAnswers: List<String>
+    ) {
+        viewModelScope.launch {
+            val cleanTc = newTc.trim()
+            val cleanOkulNo = newOkulNo.trim()
+            val state = _uiState.value
+            val count = state.soruSayisi.coerceIn(1, 25)
+            val answerKey = state.answerKey
+            val maxScores = state.maxScores
+
+            val normalizedAnswers = (0 until count).map { idx ->
+                val raw = studentAnswers.getOrElse(idx) { "" }.trim().uppercase(java.util.Locale.ROOT)
+                if (raw in listOf("A", "B", "C", "D", "E")) raw else ""
+            }
+            val computedScores = (0 until count).map { idx ->
+                val ans = normalizedAnswers[idx]
+                val expected = answerKey.getOrElse(idx) { "" }
+                if (ans.isNotBlank() && expected.isNotBlank() && ans == expected) {
+                    maxScores.getOrElse(idx) { 0 }.coerceIn(0, 100)
+                } else {
+                    0
+                }
+            }
+            val resolved = repository.resolveStudent(examSessionId, cleanTc, cleanOkulNo)
+            repository.updateResult(
+                original.copy(
+                    tcKimlikNo = resolved.tcKimlikNo,
+                    okulNo = resolved.okulNo,
+                    adSoyad = resolved.adSoyad,
+                    sinifSubesi = resolved.sinifSubesi,
+                    score1 = computedScores.getOrElse(0) { 0 },
+                    score2 = computedScores.getOrElse(1) { 0 },
+                    score3 = computedScores.getOrElse(2) { 0 },
+                    score4 = computedScores.getOrElse(3) { 0 },
+                    score5 = computedScores.getOrElse(4) { 0 },
+                    score6 = computedScores.getOrElse(5) { 0 },
+                    score7 = computedScores.getOrElse(6) { 0 },
+                    score8 = computedScores.getOrElse(7) { 0 },
+                    score9 = computedScores.getOrElse(8) { 0 },
+                    score10 = computedScores.getOrElse(9) { 0 },
+                    totalScore = computedScores.sum(),
+                    hasTotalMismatch = false,
+                    isTcValid = resolved.isTcValid,
+                    needsManualReview = false,
+                    matchStatus = resolved.matchStatus.name,
+                    reviewReasons = ExamResultEntity.encodeReviewReasonEnums(resolved.reviewReasons),
+                    scoresJson = ExamResultEntity.encodeScoresJson(computedScores),
+                    studentAnswersJson = ExamResultEntity.encodeStudentAnswersJson(normalizedAnswers)
+                )
+            )
+            _uiState.update { it.copy(statusMessage = "Test sonucu güncellendi.") }
         }
     }
 
@@ -207,6 +275,8 @@ class ExamResultsViewModel(
                     ogretmenLabel = teacherLabel,
                     soruSayisi = state.soruSayisi,
                     maxScores = state.maxScores,
+                    examType = state.examType,
+                    answerKey = state.answerKey,
                     maskTc = maskTc,
                     results = list
                 )

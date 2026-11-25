@@ -17,6 +17,7 @@ import com.optiklik.app.data.repository.MatchStatus
 import com.optiklik.app.data.repository.OptiklikRepository
 import com.optiklik.app.domain.omr.OmrProcessor
 import com.optiklik.app.domain.omr.OmrReadResult
+import com.optiklik.app.domain.omr.TestOmrProcessor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -46,7 +47,8 @@ data class BatchScanProgress(
 class BatchScannerService(
     private val context: Context,
     private val repository: OptiklikRepository,
-    private val omrProcessor: OmrProcessor = OmrProcessor()
+    private val omrProcessor: OmrProcessor = OmrProcessor(),
+    private val testOmrProcessor: TestOmrProcessor = TestOmrProcessor()
 ) {
 
     fun scanUris(examSessionId: Long, uris: List<Uri>): Flow<BatchScanProgress> = flow {
@@ -79,8 +81,14 @@ class BatchScannerService(
         }
 
         val session = repository.getSessionById(examSessionId)
+        val isTestExam = session?.isTestExam == true
         val soruSayisi = session?.soruSayisi ?: 10
-        val maxScores = session?.parsedMaxScores() ?: List(10) { 10 }
+        val maxScores = if (isTestExam) {
+            session?.parsedTestMaxScores() ?: List(soruSayisi) { 0 }
+        } else {
+            session?.parsedMaxScores() ?: List(10) { 10 }
+        }
+        val answerKey = if (isTestExam) session?.parsedAnswerKey().orEmpty() else emptyList()
         // Load student directory once for the entire batch (avoids per-page full table scan)
         val preloadedDirectory = repository.getAllDirectoryStudentsOnce()
         val hasDirectory = preloadedDirectory.isNotEmpty()
@@ -105,13 +113,24 @@ class BatchScannerService(
                 reports.add(BatchPageReport(label, false, "Görüntü açılamadı veya okunamadı."))
             } else {
                 try {
-                    val analysis = omrProcessor.analyzeBitmap(
-                        bitmap,
-                        isLiveCamera = false,
-                        includeDebugBitmap = debugEnabled,
-                        soruSayisi = soruSayisi,
-                        maxScores = maxScores
-                    )
+                    val analysis = if (isTestExam) {
+                        testOmrProcessor.analyzeBitmap(
+                            bitmap,
+                            isLiveCamera = false,
+                            includeDebugBitmap = debugEnabled,
+                            soruSayisi = soruSayisi,
+                            answerKey = answerKey,
+                            maxScores = maxScores
+                        )
+                    } else {
+                        omrProcessor.analyzeBitmap(
+                            bitmap,
+                            isLiveCamera = false,
+                            includeDebugBitmap = debugEnabled,
+                            soruSayisi = soruSayisi,
+                            maxScores = maxScores
+                        )
+                    }
                     val rawRead = analysis.result
                     val debugPath = if (debugEnabled && rawRead?.debugBitmap != null) {
                         saveDebugBitmap(rawRead.debugBitmap, index)
@@ -213,7 +232,9 @@ class BatchScannerService(
                                 isTcValid = resolved.isTcValid,
                                 needsManualReview = needsReview,
                                 matchStatus = resolved.matchStatus.name,
-                                reviewReasons = ExamResultEntity.encodeReviewReasonEnums(allReasons)
+                                reviewReasons = ExamResultEntity.encodeReviewReasonEnums(allReasons),
+                                scoresJson = if (isTestExam) ExamResultEntity.encodeScoresJson(read.scores) else "[]",
+                                studentAnswersJson = if (isTestExam) ExamResultEntity.encodeStudentAnswersJson(read.studentAnswers) else "[]"
                             )
                             val savedId = repository.saveResult(entity)
                             successCount++

@@ -1,4 +1,4 @@
-package com.optiklik.app.ui.home
+﻿package com.optiklik.app.ui.home
 
 import android.webkit.WebView
 import androidx.compose.foundation.clickable
@@ -73,6 +73,7 @@ fun HomeScreen(
     val coroutineScope = rememberCoroutineScope()
 
     var showCreateDialog by remember { mutableStateOf(false) }
+    var showCreateTestDialog by remember { mutableStateOf(false) }
     var showProfileDialog by remember { mutableStateOf(false) }
     var showFormTemplatesDialog by remember { mutableStateOf(false) }
     var showOyssExtensionDialog by remember { mutableStateOf(false) }
@@ -160,18 +161,30 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { showCreateDialog = true },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Yeni Sınav (Yazılı)") }
-            )
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                ExtendedFloatingActionButton(
+                    onClick = { showCreateTestDialog = true },
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    text = { Text("Yeni Sınav (Test)") }
+                )
+                ExtendedFloatingActionButton(
+                    onClick = { showCreateDialog = true },
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    text = { Text("Yeni Sınav (Yazılı)") }
+                )
+            }
         }
     ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 92.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 156.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (!teacherProfile.isCompleted) {
@@ -237,7 +250,7 @@ fun HomeScreen(
                             Spacer(Modifier.height(8.dp))
                             Text(
                                 if (sessions.isEmpty()) {
-                                    "Sağ alttaki 'Yeni Sınav' butonuna dokunarak ilk sınav oturumunuzu oluşturun."
+                                    "Sağ alttaki 'Yeni Sınav (Yazılı)' veya 'Yeni Sınav (Test)' butonuna dokunarak ilk sınav oturumunuzu oluşturun."
                                 } else {
                                     "Filtre çiplerinden 'Tümü' seçeneğini seçerek tüm sınavları görebilirsiniz."
                                 },
@@ -287,6 +300,27 @@ fun HomeScreen(
                     soruPuanlari = soruPuanlari
                 )
                 showCreateDialog = false
+            }
+        )
+    }
+
+    if (showCreateTestDialog) {
+        CreateTestExamDialog(
+            teacherProfile = teacherProfile,
+            onDismiss = { showCreateTestDialog = false },
+            onCreate = { okulAdi, yil, donem, sinif, ders, soruSayisi, soruPuanlari, cevapAnahtari ->
+                viewModel.createSession(
+                    okulAdi = okulAdi,
+                    egitimOgretimYili = yil,
+                    sinavDonemi = donem,
+                    sinifSubesi = sinif,
+                    dersAdi = ders,
+                    soruSayisi = soruSayisi,
+                    soruPuanlari = soruPuanlari,
+                    examType = "TEST",
+                    cevapAnahtari = cevapAnahtari
+                )
+                showCreateTestDialog = false
             }
         )
     }
@@ -521,7 +555,7 @@ private fun UserGuideDialog(onDismiss: () -> Unit) {
                     factory = { ctx ->
                         WebView(ctx).apply {
                             settings.javaScriptEnabled = true
-                            loadUrl("file:///android_asset/kullanim_kilavuzu.html")
+                            loadUrl("file:///android_asset/kullanimkilavuzu.html")
                         }
                     }
                 )
@@ -653,6 +687,7 @@ Not: Optiklik Excel'indeki Sıra No, T.C. Kimlik No, Sınıfı, Adı Soyadı, To
     )
 }
 
+
 @Composable
 private fun FormTemplatesDialog(
     onDismiss: () -> Unit,
@@ -678,6 +713,18 @@ private fun FormTemplatesDialog(
                     description = "Tek A4 sayfasında 2 adet optik form. Yazdırdıktan sonra ortadan keserek tek form halinde taratınız.",
                     onDownload = { onDownload("Optik Form2.pdf", "application/pdf") },
                     onShare = { onShare("Optik Form2.pdf", "application/pdf", "Optik Form 2 Paylaş") }
+                )
+                FormTemplateItemCard(
+                    title = "Optik Form 3 (Test Tekli Şablon — JPG)",
+                    description = "Test sınav kağıdına kopyala-yapıştır yapmak veya tekli baskı almak için 25 soruluk dikey optik form.",
+                    onDownload = { onDownload("Optik Form3.jpg", "image/jpeg") },
+                    onShare = { onShare("Optik Form3.jpg", "image/jpeg", "Optik Form 3 Paylaş") }
+                )
+                FormTemplateItemCard(
+                    title = "Optik Form 4 (Test 2'li A4 Şablon — PDF)",
+                    description = "Tek A4 sayfasında 2 adet 25 soruluk test optik formu. Yazdırdıktan sonra ortadan keserek tek form halinde taratınız.",
+                    onDownload = { onDownload("Optik Form4.pdf", "application/pdf") },
+                    onShare = { onShare("Optik Form4.pdf", "application/pdf", "Optik Form 4 Paylaş") }
                 )
             }
         },
@@ -1029,6 +1076,7 @@ private fun TeacherProfileDialog(
     )
 }
 
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CreateExamDialog(
@@ -1272,6 +1320,362 @@ private fun CreateExamDialog(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CreateTestExamDialog(
+    teacherProfile: TeacherProfile,
+    onDismiss: () -> Unit,
+    onCreate: (
+        okulAdi: String,
+        yil: String,
+        donem: String,
+        sinif: String,
+        ders: String,
+        soruSayisi: Int,
+        soruPuanlari: String,
+        cevapAnahtari: String
+    ) -> Unit
+) {
+    var okulAdi by remember { mutableStateOf(teacherProfile.okullar.firstOrNull().orEmpty()) }
+    var egitimOgretimYili by remember { mutableStateOf("") }
+    var sinavDonemi by remember { mutableStateOf(STANDARD_EXAM_PERIODS.first()) }
+    var sinifSubesi by remember { mutableStateOf("") }
+    var dersAdi by remember { mutableStateOf("") }
+    var soruSayisi by remember { mutableIntStateOf(25) }
+
+    val questionPoints = remember {
+        mutableStateListOf<String>().apply {
+            repeat(25) { add("4") }
+        }
+    }
+    val answerKey = remember {
+        mutableStateListOf<String>().apply {
+            repeat(25) { add("") }
+        }
+    }
+
+    fun distributeEqually(count: Int) {
+        val base = 100 / count
+        val rem = 100 % count
+        for (i in 0 until count) {
+            questionPoints[i] = (base + if (i < rem) 1 else 0).toString()
+        }
+    }
+
+    fun updateQuestionCount(newCount: Int) {
+        val clamped = newCount.coerceIn(1, 25)
+        soruSayisi = clamped
+        distributeEqually(clamped)
+    }
+
+    val activePoints = (0 until soruSayisi).sumOf { questionPoints[it].toIntOrNull() ?: 0 }
+    val markedCount = (0 until soruSayisi).count { answerKey[it] in listOf("A", "B", "C", "D", "E") }
+    val allAnswersMarked = markedCount == soruSayisi
+    val isTotalValid = activePoints == 100
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier
+            .fillMaxWidth(0.95f)
+            .fillMaxHeight(0.92f),
+        title = { Text("Yeni Test Sınavı (Optik)", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // 1. Okul Adı
+                Text("1. Okul Adı", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                if (teacherProfile.okullar.isNotEmpty()) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        teacherProfile.okullar.forEach { school ->
+                            FilterChip(
+                                selected = okulAdi == school,
+                                onClick = { okulAdi = school },
+                                label = { Text(school, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                            )
+                        }
+                    }
+                }
+                OutlinedTextField(
+                    value = okulAdi,
+                    onValueChange = { okulAdi = it },
+                    label = { Text("Okul Adı") },
+                    placeholder = { Text("Örn: Atatürk Anadolu Lisesi") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // 2. Eğitim Öğretim Yılı
+                OutlinedTextField(
+                    value = egitimOgretimYili,
+                    onValueChange = { egitimOgretimYili = it },
+                    label = { Text("2. Eğitim Öğretim Yılı") },
+                    placeholder = { Text("Örn: 2026-2027") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // 3. Sınav Dönemi
+                Text("3. Sınav Dönemi", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    for (rowIdx in 0 until 2) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            for (colIdx in 0 until 2) {
+                                val option = STANDARD_EXAM_PERIODS[rowIdx * 2 + colIdx]
+                                FilterChip(
+                                    selected = sinavDonemi == option,
+                                    onClick = { sinavDonemi = option },
+                                    label = {
+                                        Text(
+                                            text = option,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            maxLines = 2
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // 4. Sınıf / Şube
+                OutlinedTextField(
+                    value = sinifSubesi,
+                    onValueChange = { sinifSubesi = it },
+                    label = { Text("4. Sınıf / Şube") },
+                    placeholder = { Text("Örn: 9-A, 10-B") },
+                    supportingText = {
+                        if (sinifSubesi.isNotBlank()) {
+                            Text("Standart: ${OptiklikRepository.normalizeClassBranch(sinifSubesi)}")
+                        }
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // 5. Ders Adı
+                OutlinedTextField(
+                    value = dersAdi,
+                    onValueChange = { dersAdi = it },
+                    label = { Text("5. Ders Adı") },
+                    placeholder = { Text("Örn: Biyoloji, Matematik") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // 6. Soru Sayısı (1-25) ve Puanları Eşit Dağıt
+                Text(
+                    "6. Soru Sayısı (1–25)",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilledTonalIconButton(
+                        onClick = { if (soruSayisi > 1) updateQuestionCount(soruSayisi - 1) },
+                        enabled = soruSayisi > 1
+                    ) {
+                        Text("-", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                    Text(
+                        text = "$soruSayisi Soru",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    FilledTonalIconButton(
+                        onClick = { if (soruSayisi < 25) updateQuestionCount(soruSayisi + 1) },
+                        enabled = soruSayisi < 25
+                    ) {
+                        Text("+", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.weight(1f))
+                    OutlinedButton(
+                        onClick = { distributeEqually(soruSayisi) },
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text("Puanları Eşit Dağıt", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf(10, 15, 20, 25).forEach { preset ->
+                        FilterChip(
+                            selected = soruSayisi == preset,
+                            onClick = { updateQuestionCount(preset) },
+                            label = { Text("$preset", maxLines = 1, softWrap = false) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                // 7. Cevap Anahtarı ve Soru Puanları
+                Text(
+                    "7. Cevap Anahtarı ve Soru Puanları",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    for (idx in 0 until soruSayisi) {
+                        val selectedOption = answerKey[idx]
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "S${idx + 1}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.width(32.dp)
+                                )
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    listOf("A", "B", "C", "D", "E").forEach { option ->
+                                        val isSelected = selectedOption == option
+                                        Surface(
+                                            shape = MaterialTheme.shapes.small,
+                                            color = if (isSelected) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.surface
+                                            },
+                                            border = if (isSelected) null else androidx.compose.foundation.BorderStroke(
+                                                1.dp,
+                                                MaterialTheme.colorScheme.outlineVariant
+                                            ),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(34.dp)
+                                                .clickable { answerKey[idx] = option }
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(
+                                                    text = option,
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isSelected) {
+                                                        MaterialTheme.colorScheme.onPrimary
+                                                    } else {
+                                                        MaterialTheme.colorScheme.onSurface
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                OutlinedTextField(
+                                    value = questionPoints[idx],
+                                    onValueChange = { input ->
+                                        questionPoints[idx] = input.filter { it.isDigit() }.take(3)
+                                    },
+                                    label = { Text("P", style = MaterialTheme.typography.labelSmall) },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true,
+                                    modifier = Modifier.width(58.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Live Totals & Validation
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = if (isTotalValid) Color(0xFFDCFCE7) else MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = if (isTotalValid) {
+                            "Toplam Puan: 100 / 100"
+                        } else {
+                            "Toplam Puan: $activePoints / 100 (100 olmalıdır)"
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isTotalValid) Color(0xFF166534) else MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
+
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = if (allAnswersMarked) Color(0xFFDCFCE7) else MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = if (allAnswersMarked) {
+                            "Cevap Anahtarı: İşaretlenen $markedCount / $soruSayisi soru"
+                        } else {
+                            "İşaretlenen: $markedCount / $soruSayisi soru • Tüm soruların doğru şıkkını (A–E) işaretleyiniz"
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (allAnswersMarked) Color(0xFF166534) else MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val pointsCsv = (0 until soruSayisi).joinToString(",") { idx ->
+                        (questionPoints[idx].toIntOrNull() ?: 0).coerceIn(0, 100).toString()
+                    }
+                    val answerKeyCsv = (0 until soruSayisi).joinToString(",") { idx ->
+                        answerKey[idx].trim().uppercase(Locale.ROOT)
+                    }
+                    onCreate(
+                        okulAdi,
+                        egitimOgretimYili,
+                        sinavDonemi,
+                        sinifSubesi,
+                        dersAdi,
+                        soruSayisi,
+                        pointsCsv,
+                        answerKeyCsv
+                    )
+                },
+                enabled = sinavDonemi.isNotBlank() &&
+                    sinifSubesi.isNotBlank() &&
+                    dersAdi.isNotBlank() &&
+                    isTotalValid &&
+                    allAnswersMarked
+            ) {
+                Text("Oluştur")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("İptal")
+            }
+        }
+    )
+}
+
 @Composable
 private fun ExamSessionCard(
     session: ExamSessionWithStats,
@@ -1318,6 +1722,20 @@ private fun ExamSessionCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        if (session.examType == "TEST") {
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Text(
+                                    text = "TEST",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
                         if (session.sinifSubesi.isNotBlank()) {
                             Surface(
                                 color = MaterialTheme.colorScheme.primaryContainer,

@@ -39,6 +39,8 @@ class ExcelExporter(private val context: Context) {
         ogretmenLabel: String = "",
         soruSayisi: Int = 10,
         maxScores: List<Int> = List(10) { 10 },
+        examType: String = "WRITTEN",
+        answerKey: List<String> = emptyList(),
         maskTc: Boolean = false,
         results: List<ExamResultWithStudent>
     ): ExportedExcelFile = withContext(Dispatchers.IO) {
@@ -124,24 +126,43 @@ class ExcelExporter(private val context: Context) {
             setFont(summaryFont)
         }
 
-        val headers = listOf(
-            "Sıra No",
-            "T.C. Kimlik No",
-            "Sınıfı",
-            "Okul No",
-            "Adı Soyadı",
-            "Soru 1",
-            "Soru 2",
-            "Soru 3",
-            "Soru 4",
-            "Soru 5",
-            "Soru 6",
-            "Soru 7",
-            "Soru 8",
-            "Soru 9",
-            "Soru 10",
-            "Toplam Puan"
-        )
+        val isTestExam = examType == "TEST"
+        val activeQuestionCount = if (isTestExam) soruSayisi.coerceIn(1, 25) else 10
+
+        val headers = if (isTestExam) {
+            buildList {
+                add("Sıra No")
+                add("T.C. Kimlik No")
+                add("Sınıfı")
+                add("Okul No")
+                add("Adı Soyadı")
+                for (q in 1..activeQuestionCount) add("Soru $q")
+                add("Doğru")
+                add("Yanlış")
+                add("Boş")
+                add("Toplam Puan")
+                add("Öğrenci Cevapları")
+            }
+        } else {
+            listOf(
+                "Sıra No",
+                "T.C. Kimlik No",
+                "Sınıfı",
+                "Okul No",
+                "Adı Soyadı",
+                "Soru 1",
+                "Soru 2",
+                "Soru 3",
+                "Soru 4",
+                "Soru 5",
+                "Soru 6",
+                "Soru 7",
+                "Soru 8",
+                "Soru 9",
+                "Soru 10",
+                "Toplam Puan"
+            )
+        }
 
         val headerRowIndex = 4
         val headerRow = sheet.createRow(headerRowIndex)
@@ -166,17 +187,50 @@ class ExcelExporter(private val context: Context) {
             row.createCell(2).apply { setCellValue(sinifText); setCellStyle(centerCellStyle) }
             row.createCell(3).apply { setCellValue(okulNoText); setCellStyle(centerCellStyle) }
             row.createCell(4).apply { setCellValue(adSoyadText); setCellStyle(cellStyle) }
-            row.createCell(5).apply { setCellValue(r.score1.toDouble()); setCellStyle(centerCellStyle) }
-            row.createCell(6).apply { setCellValue(r.score2.toDouble()); setCellStyle(centerCellStyle) }
-            row.createCell(7).apply { setCellValue(r.score3.toDouble()); setCellStyle(centerCellStyle) }
-            row.createCell(8).apply { setCellValue(r.score4.toDouble()); setCellStyle(centerCellStyle) }
-            row.createCell(9).apply { setCellValue(r.score5.toDouble()); setCellStyle(centerCellStyle) }
-            row.createCell(10).apply { setCellValue(r.score6.toDouble()); setCellStyle(centerCellStyle) }
-            row.createCell(11).apply { setCellValue(r.score7.toDouble()); setCellStyle(centerCellStyle) }
-            row.createCell(12).apply { setCellValue(r.score8.toDouble()); setCellStyle(centerCellStyle) }
-            row.createCell(13).apply { setCellValue(r.score9.toDouble()); setCellStyle(centerCellStyle) }
-            row.createCell(14).apply { setCellValue(r.score10.toDouble()); setCellStyle(centerCellStyle) }
-            row.createCell(15).apply { setCellValue(r.totalScore.toDouble()); setCellStyle(centerCellStyle) }
+
+            if (isTestExam) {
+                val scores = r.parsedScoresJson()
+                val answers = r.parsedStudentAnswers()
+                var correct = 0
+                var wrong = 0
+                var blank = 0
+                val answerDisplay = buildList {
+                    for (q in 0 until activeQuestionCount) {
+                        val pt = scores.getOrElse(q) { 0 }
+                        row.createCell(5 + q).apply { setCellValue(pt.toDouble()); setCellStyle(centerCellStyle) }
+                        val ans = answers.getOrElse(q) { "" }
+                        val expected = answerKey.getOrElse(q) { "" }
+                        if (ans.isBlank()) {
+                            blank++
+                            add("${q + 1}:-")
+                        } else if (ans != "MULTI" && expected.isNotBlank() && ans == expected) {
+                            correct++
+                            add("${q + 1}:$ans")
+                        } else {
+                            wrong++
+                            add("${q + 1}:${if (ans == "MULTI") "Ç" else ans}")
+                        }
+                    }
+                }
+                val baseCol = 5 + activeQuestionCount
+                row.createCell(baseCol).apply { setCellValue(correct.toDouble()); setCellStyle(centerCellStyle) }
+                row.createCell(baseCol + 1).apply { setCellValue(wrong.toDouble()); setCellStyle(centerCellStyle) }
+                row.createCell(baseCol + 2).apply { setCellValue(blank.toDouble()); setCellStyle(centerCellStyle) }
+                row.createCell(baseCol + 3).apply { setCellValue(r.totalScore.toDouble()); setCellStyle(centerCellStyle) }
+                row.createCell(baseCol + 4).apply { setCellValue(answerDisplay.joinToString(" ")); setCellStyle(cellStyle) }
+            } else {
+                row.createCell(5).apply { setCellValue(r.score1.toDouble()); setCellStyle(centerCellStyle) }
+                row.createCell(6).apply { setCellValue(r.score2.toDouble()); setCellStyle(centerCellStyle) }
+                row.createCell(7).apply { setCellValue(r.score3.toDouble()); setCellStyle(centerCellStyle) }
+                row.createCell(8).apply { setCellValue(r.score4.toDouble()); setCellStyle(centerCellStyle) }
+                row.createCell(9).apply { setCellValue(r.score5.toDouble()); setCellStyle(centerCellStyle) }
+                row.createCell(10).apply { setCellValue(r.score6.toDouble()); setCellStyle(centerCellStyle) }
+                row.createCell(11).apply { setCellValue(r.score7.toDouble()); setCellStyle(centerCellStyle) }
+                row.createCell(12).apply { setCellValue(r.score8.toDouble()); setCellStyle(centerCellStyle) }
+                row.createCell(13).apply { setCellValue(r.score9.toDouble()); setCellStyle(centerCellStyle) }
+                row.createCell(14).apply { setCellValue(r.score10.toDouble()); setCellStyle(centerCellStyle) }
+                row.createCell(15).apply { setCellValue(r.totalScore.toDouble()); setCellStyle(centerCellStyle) }
+            }
         }
 
         // Bottom row: Class Average (=AVERAGE(...))
@@ -189,9 +243,11 @@ class ExcelExporter(private val context: Context) {
         avgRow.createCell(3).apply { setCellValue(""); setCellStyle(summaryStyle) }
         avgRow.createCell(4).apply { setCellValue("SINIF ORTALAMASI"); setCellStyle(summaryStyle) }
 
-        val colLetters = listOf("F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P")
-        colLetters.forEachIndexed { i, colLetter ->
-            val cell = avgRow.createCell(5 + i)
+        val numericSummaryCount = if (isTestExam) activeQuestionCount + 4 else 11
+        for (i in 0 until numericSummaryCount) {
+            val colIdx = 5 + i
+            val colLetter = excelColLetter(colIdx)
+            val cell = avgRow.createCell(colIdx)
             if (results.isNotEmpty()) {
                 cell.cellFormula = "AVERAGE(${colLetter}${firstDataRowExcel}:${colLetter}${lastDataRowExcel})"
             } else {
@@ -199,8 +255,19 @@ class ExcelExporter(private val context: Context) {
             }
             cell.setCellStyle(summaryStyle)
         }
+        if (isTestExam) {
+            avgRow.createCell(5 + numericSummaryCount).apply { setCellValue(""); setCellStyle(summaryStyle) }
+        }
 
-        val widths = listOf(10, 16, 12, 12, 26, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 14)
+        val widths = if (isTestExam) {
+            buildList {
+                add(10); add(16); add(12); add(12); add(26)
+                repeat(activeQuestionCount) { add(9) }
+                add(10); add(10); add(10); add(14); add(45)
+            }
+        } else {
+            listOf(10, 16, 12, 12, 26, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 14)
+        }
         widths.forEachIndexed { idx, w -> sheet.setColumnWidth(idx, w * 256) }
 
         // Sheet 2: Soru Analizi
@@ -214,6 +281,8 @@ class ExcelExporter(private val context: Context) {
             ogretmenLabel = ogretmenLabel,
             soruSayisi = soruSayisi,
             maxScores = maxScores,
+            examType = examType,
+            answerKey = answerKey,
             results = results,
             metaStyle = metaStyle,
             headerStyle = headerStyle,
@@ -262,6 +331,8 @@ class ExcelExporter(private val context: Context) {
         ogretmenLabel: String,
         soruSayisi: Int,
         maxScores: List<Int>,
+        examType: String = "WRITTEN",
+        answerKey: List<String> = emptyList(),
         results: List<ExamResultWithStudent>,
         metaStyle: org.apache.poi.ss.usermodel.CellStyle,
         headerStyle: org.apache.poi.ss.usermodel.CellStyle,
@@ -303,32 +374,43 @@ class ExcelExporter(private val context: Context) {
         }
 
         val count = results.size
-        val activeCount = soruSayisi.coerceIn(1, 10)
+        val isTestExam = examType == "TEST"
+        val activeCount = if (isTestExam) soruSayisi.coerceIn(1, 25) else soruSayisi.coerceIn(1, 10)
         for (q in 0 until activeCount) {
             val scores = results.map { item ->
                 val r = item.result
-                when (q) {
-                    0 -> r.score1
-                    1 -> r.score2
-                    2 -> r.score3
-                    3 -> r.score4
-                    4 -> r.score5
-                    5 -> r.score6
-                    6 -> r.score7
-                    7 -> r.score8
-                    8 -> r.score9
-                    else -> r.score10
+                if (isTestExam) {
+                    r.parsedScoresJson().getOrElse(q) { 0 }
+                } else {
+                    when (q) {
+                        0 -> r.score1
+                        1 -> r.score2
+                        2 -> r.score3
+                        3 -> r.score4
+                        4 -> r.score5
+                        5 -> r.score6
+                        6 -> r.score7
+                        7 -> r.score8
+                        8 -> r.score9
+                        else -> r.score10
+                    }
                 }
             }
             val row = analysisSheet.createRow(5 + q)
-            val maxScore = maxScores.getOrElse(q) { 10 }
+            val maxScore = maxScores.getOrElse(q) { if (isTestExam) 0 else 10 }
             val avg = if (scores.isNotEmpty()) scores.average() else 0.0
             val successPct = if (maxScore > 0) (avg / maxScore) * 100.0 else 0.0
             val max = scores.maxOrNull() ?: 0
             val min = scores.minOrNull() ?: 0
             val zeros = scores.count { it == 0 }
 
-            row.createCell(0).apply { setCellValue("Soru ${q + 1}"); setCellStyle(centerCellStyle) }
+            val qLabel = if (isTestExam) {
+                val keyChar = answerKey.getOrElse(q) { "" }
+                if (keyChar.isNotBlank()) "Soru ${q + 1} ($keyChar)" else "Soru ${q + 1}"
+            } else {
+                "Soru ${q + 1}"
+            }
+            row.createCell(0).apply { setCellValue(qLabel); setCellStyle(centerCellStyle) }
             row.createCell(1).apply { setCellValue(maxScore.toDouble()); setCellStyle(centerCellStyle) }
             row.createCell(2).apply { setCellValue(avg); setCellStyle(decimalCellStyle) }
             row.createCell(3).apply { setCellValue(successPct); setCellStyle(decimalCellStyle) }
@@ -354,6 +436,16 @@ class ExcelExporter(private val context: Context) {
 
         val analysisWidths = listOf(16, 16, 18, 14, 18, 16, 20, 18)
         analysisWidths.forEachIndexed { idx, w -> analysisSheet.setColumnWidth(idx, w * 256) }
+    }
+
+    private fun excelColLetter(index: Int): String {
+        var n = index
+        val sb = StringBuilder()
+        while (n >= 0) {
+            sb.append(('A' + (n % 26)))
+            n = (n / 26) - 1
+        }
+        return sb.reverse().toString()
     }
 
     private fun maskTcKimlik(tc: String): String {

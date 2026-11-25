@@ -51,6 +51,8 @@ class HomeViewModel(
         dersAdi: String,
         soruSayisi: Int = 10,
         soruPuanlari: String = "10,10,10,10,10,10,10,10,10,10",
+        examType: String = "WRITTEN",
+        cevapAnahtari: String = "",
         onCreated: (Long) -> Unit = {}
     ) {
         if (sinavDonemi.isBlank()) {
@@ -82,7 +84,9 @@ class HomeViewModel(
                 sinifSubesi = sinifSubesi,
                 dersAdi = cleanCourse,
                 soruSayisi = soruSayisi,
-                soruPuanlari = soruPuanlari
+                soruPuanlari = soruPuanlari,
+                examType = examType,
+                cevapAnahtari = cevapAnahtari
             )
             onCreated(id)
         }
